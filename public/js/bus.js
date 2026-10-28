@@ -65,16 +65,16 @@ const TARGET_ROUTES = [
 
 const STATIONS = {
   inbound: [
-    { id: 'gate_in', name: { ko: '경희대정문', en: 'Main Gate' }, where: { ko: '입교 방향', en: 'Inbound' }, pos: { x: 86.5, y: 22.0 } },
-    { id: 'foreign_in', name: { ko: '외국어대학', en: 'Foreign Languages' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 55.0, y: 20.0 } },
-    { id: 'life_in', name: { ko: '생명과학대', en: 'Life Sciences' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 41.0, y: 38.0 } },
-    { id: 'square_in', name: { ko: '사색의 광장 (종점)', en: 'Square of Thought' }, where: { ko: '하차 전용', en: 'Terminus' }, pos: { x: 25.5, y: 55.0 } }
+    { id: 'gate_in', name: { ko: '경희대정문', en: 'Main Gate' }, where: { ko: '입교 방향', en: 'Inbound' }, pos: { x: 79.5, y: 22.0 } },
+    { id: 'foreign_in', name: { ko: '외국어대학', en: 'Foreign Languages' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 53.5, y: 41.5 } },
+    { id: 'life_in', name: { ko: '생명과학대', en: 'Life Sciences' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 40.0, y: 55.0 } },
+    { id: 'square_in', name: { ko: '사색의 광장 (종점)', en: 'Square of Thought' }, where: { ko: '하차 전용', en: 'Terminus' }, pos: { x: 23.5, y: 62.0 } }
   ],
   outbound: [
-    { id: 'square_out', name: { ko: '사색의 광장 (기점)', en: 'Square of Thought' }, where: { ko: '승차 기점', en: 'Departure' }, pos: { x: 25.5, y: 55.0 } },
-    { id: 'life_out', name: { ko: '생명과학대·산업대학', en: 'Life & Applied Sciences' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 41.0, y: 38.0 } },
-    { id: 'foreign_out', name: { ko: '경희대체육대학·외대', en: 'Sports & Foreign Lang' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 55.0, y: 20.0 } },
-    { id: 'gate_out', name: { ko: '경희대정문 (출교)', en: 'Main Gate' }, where: { ko: '시외/수원 방면', en: 'Outbound' }, pos: { x: 86.5, y: 22.0 } }
+    { id: 'square_out', name: { ko: '사색의 광장 (기점)', en: 'Square of Thought' }, where: { ko: '승차 기점', en: 'Departure' }, pos: { x: 23.5, y: 62.0 } },
+    { id: 'life_out', name: { ko: '생명과학대·산업대학', en: 'Life & Applied Sciences' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 40.0, y: 55.0 } },
+    { id: 'foreign_out', name: { ko: '경희대체육대학·외대', en: 'Sports & Foreign Lang' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 53.5, y: 41.5 } },
+    { id: 'gate_out', name: { ko: '경희대정문 (출교)', en: 'Main Gate' }, where: { ko: '시외/수원 방면', en: 'Outbound' }, pos: { x: 79.5, y: 22.0 } }
   ]
 };
 
