@@ -1,125 +1,239 @@
-<script>
-// 기존 STATE 및 기본 렌더링 변수 유지
-let STOPS = [];
-let clockOffset = 0; // 서버시각 - 기기시각 오차
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Pass - 경희대 버스 실시간 도착 정보</title>
+  <style>
+    :root {
+      --primary: #800020;
+      --bg: #f5f6f8;
+      --card-bg: #ffffff;
+      --text: #191f28;
+      --sub-text: #8b95a1;
+      --accent: #e52528;
+      --border: #e5e8eb;
+    }
 
-// M5107 및 1560 노선 대상
-const TARGET_OFFSET_ROUTES = ['M5107', '1560'];
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 40px; }
 
-// 정문 도착 시각(ETA)을 기준으로 캠퍼스 내부 정류장 시간 자동 계산
-function applyGateOffsets(stops, fetchedAt) {
-  const mainGate = stops.find((s) => s.id === 'main-gate');
-  if (!mainGate) return;
+    header { background: var(--primary); color: white; padding: 20px 16px; text-align: center; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+    header .update-time { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; font-weight: normal; }
 
-  TARGET_OFFSET_ROUTES.forEach((routeName) => {
-    const gateBus = mainGate.arrivals.find((a) => a.route === routeName);
-    if (!gateBus || gateBus.eta1 == null) return;
+    .container { max-width: 600px; margin: 16px auto; padding: 0 16px; }
 
-    stops.forEach((stop) => {
-      // 1. 들어오는 방향 (Inbound): 정문 -> 외대(+2분) -> 생명대(+4분)
-      if (stop.dir === 'in' && stop.id !== 'main-gate') {
-        const hasRoute = stop.arrivals.some((a) => a.route === routeName);
-        if (!hasRoute) {
-          const offsetMinutes = stop.id === 'foreign' ? 2 : 4;
-          const offsetMs = offsetMinutes * 60 * 1000;
-          
-          stop.arrivals.push({
-            route: routeName,
-            dest: { ko: '사색의 광장 방면', en: 'Inbound' },
-            t1: gateBus.t1 != null ? gateBus.t1 + offsetMinutes : null,
-            t2: null,
-            eta1: gateBus.eta1 + offsetMs,
-            eta2: null,
-            isOffsetCalculated: true // 오프셋 보정 적용 표시
-          });
-        }
-      }
+    .stop-card { background: var(--card-bg); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
+    .stop-name { font-size: 1.05rem; font-weight: 700; color: #191f28; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 
-      // 2. 나가는 방향 (Outbound): 정문 통과 전 역산 (-2분 ~ -6분)
-      if (stop.dir === 'out') {
-        const hasRoute = stop.arrivals.some((a) => a.route === routeName);
-        if (!hasRoute) {
-          let minusMinutes = 2; // 경희대체육대학·외대 (-2분)
-          if (stop.id === 'lifesci-ind') minusMinutes = 4; // 생명과학대·산업대학 (-4분)
-          if (stop.id === 'square') minusMinutes = 6;      // 사색의 광장 (-6분)
+    .badge-dir { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+    .dir-in { background: #e8f3ff; color: #1b64da; }
+    .dir-out { background: #fff8e6; color: #b7791f; }
 
-          const offsetMs = minusMinutes * 60 * 1000;
-          const calculatedEta = gateBus.eta1 - offsetMs;
+    .bus-table { width: 100%; border-collapse: collapse; }
+    .bus-row { border-bottom: 1px dashed var(--border); }
+    .bus-row:last-child { border-bottom: none; }
+    .bus-row td { padding: 10px 0; vertical-align: middle; }
 
-          // 이미 지난 시각이 아닌 경우에만 추가
-          if (calculatedEta > fetchedAt) {
-            stop.arrivals.push({
-              route: routeName,
-              dest: { ko: '정문/차고지 방면', en: 'Outbound' },
-              t1: Math.max(0, Math.round((calculatedEta - fetchedAt) / 60000)),
-              t2: null,
-              eta1: calculatedEta,
-              eta2: null,
-              isOffsetCalculated: true
-            });
-          }
-        }
-      }
-    });
-  });
-}
-
-// 실시간 버스 데이터 로드
-async function loadStops() {
-  try {
-    const sent = Date.now();
-    const res = await fetch('/api/bus', { cache: 'no-store' });
-    const j = await res.json();
-    const recv = Date.now();
-
-    // 1. 네트워크 지연 및 시계 오차 보정
-    clockOffset = j.fetchedAt - (sent + recv) / 2;
-
-    // 2. 분 단위 -> 절대 도착 시간(ETA ms) 변환
-    j.stops.forEach((stop) => {
-      stop.arrivals.forEach((a) => {
-        a.eta1 = a.t1 != null ? j.fetchedAt + a.t1 * 60000 : null;
-        a.eta2 = a.t2 != null ? j.fetchedAt + a.t2 * 60000 : null;
-      });
-    });
-
-    // 3. M5107, 1560 정문 기준 오프셋 보정 계산 적용
-    applyGateOffsets(j.stops, j.fetchedAt);
-
-    STOPS = j.stops;
-    state.updatedAt = j.fetchedAt - clockOffset;
-  } catch (err) {
-    console.error('Bus data fetch failed:', err);
-  }
-  render();
-}
-
-// 브라우저에서 초 단위로 남은 시간 계산
-const serverNow = () => Date.now() + clockOffset;
-const remainMin = (eta) => (eta == null ? null : Math.max(0, Math.round((eta - serverNow()) / 60000)));
-
-// 초기 로드 및 30초 주기 API 갱신
-loadStops();
-setInterval(loadStops, 30000);
-
-// 매초 UI 상 남은 분(min) 텍스트 업데이트 (화면 전체 재렌더링 없이 숫자만 차감)
-setInterval(() => {
-  const agoEl = document.getElementById('ago');
-  if (agoEl) agoEl.textContent = t('updated')(ago());
-
-  document.querySelectorAll('td.t1[data-eta]').forEach((td) => {
-    const eta = Number(td.dataset.eta);
-    if (!eta) return;
-    const m = remainMin(eta);
-    if (m == null) return;
+    .route-name { font-weight: 700; font-size: 1rem; color: #191f28; width: 85px; }
+    .route-dest { font-size: 0.8rem; color: var(--sub-text); }
     
-    td.firstChild.textContent = m <= 1 ? t('soon') : m;
-    td.classList.toggle('soon', m <= 1);
-  });
-}, 1000);
+    .t1 { text-align: right; font-weight: 700; font-size: 1rem; color: var(--accent); }
+    .t1.soon { animation: pulse 1.5s infinite; }
+    .t2 { display: block; font-size: 0.75rem; color: var(--sub-text); font-weight: normal; }
 
-// 탭 전환 시 화면 자동 갱신
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) loadStops();
-});
-</script>
+    .calc-badge { font-size: 0.65rem; background: #f2f4f6; color: #4e5968; padding: 2px 5px; border-radius: 4px; margin-left: 4px; vertical-align: middle; font-weight: normal; }
+    .empty-info { text-align: center; color: var(--sub-text); font-size: 0.85rem; padding: 12px 0; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Campus Pass 🚌</h1>
+    <div class="update-time">최근 갱신: <span id="ago">로딩 중...</span></div>
+  </header>
+
+  <div class="container" id="app">
+    <div class="empty-info">실시간 버스 정보를 불러오는 중입니다...</div>
+  </div>
+
+  <script>
+    let STOPS = [];
+    let clockOffset = 0;
+    let lastFetchedAt = Date.now();
+
+    const TARGET_OFFSET_ROUTES = ['M5107', '1560'];
+
+    // 정문 시각 기준 오프셋 보정 계산
+    function applyGateOffsets(stops, fetchedAt) {
+      const mainGate = stops.find((s) => s.id === 'main-gate');
+      if (!mainGate) return;
+
+      TARGET_OFFSET_ROUTES.forEach((routeName) => {
+        const gateBus = mainGate.arrivals.find((a) => a.route === routeName);
+        if (!gateBus || gateBus.eta1 == null) return;
+
+        stops.forEach((stop) => {
+          // 1. Inbound (캠퍼스 들어오는 방향)
+          if (stop.dir === 'in' && stop.id !== 'main-gate') {
+            const hasRoute = stop.arrivals.some((a) => a.route === routeName);
+            if (!hasRoute) {
+              const offsetMinutes = stop.id === 'foreign' ? 2 : 4;
+              const offsetMs = offsetMinutes * 60 * 1000;
+              
+              stop.arrivals.push({
+                route: routeName,
+                dest: { ko: '사색의 광장 방면', en: 'Inbound' },
+                t1: gateBus.t1 != null ? gateBus.t1 + offsetMinutes : null,
+                t2: null,
+                eta1: gateBus.eta1 + offsetMs,
+                eta2: null,
+                isOffsetCalculated: true
+              });
+            }
+          }
+
+          // 2. Outbound (캠퍼스 나가는 방향)
+          if (stop.dir === 'out') {
+            const hasRoute = stop.arrivals.some((a) => a.route === routeName);
+            if (!hasRoute) {
+              let minusMinutes = 2;
+              if (stop.id === 'lifesci-ind') minusMinutes = 4;
+              if (stop.id === 'square') minusMinutes = 6;
+
+              const offsetMs = minusMinutes * 60 * 1000;
+              const calculatedEta = gateBus.eta1 - offsetMs;
+
+              if (calculatedEta > fetchedAt) {
+                stop.arrivals.push({
+                  route: routeName,
+                  dest: { ko: '정문/차고지 방면', en: 'Outbound' },
+                  t1: Math.max(0, Math.round((calculatedEta - fetchedAt) / 60000)),
+                  t2: null,
+                  eta1: calculatedEta,
+                  eta2: null,
+                  isOffsetCalculated: true
+                });
+              }
+            }
+          }
+        });
+      });
+    }
+
+    async function loadStops() {
+      try {
+        const sent = Date.now();
+        const res = await fetch('/api/bus', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const j = await res.json();
+        const recv = Date.now();
+
+        clockOffset = j.fetchedAt - (sent + recv) / 2;
+        lastFetchedAt = j.fetchedAt;
+
+        j.stops.forEach((stop) => {
+          stop.arrivals.forEach((a) => {
+            a.eta1 = a.t1 != null ? j.fetchedAt + a.t1 * 60000 : null;
+            a.eta2 = a.t2 != null ? j.fetchedAt + a.t2 * 60000 : null;
+          });
+        });
+
+        applyGateOffsets(j.stops, j.fetchedAt);
+        STOPS = j.stops;
+        render();
+      } catch (err) {
+        console.error('Bus data load failed:', err);
+      }
+    }
+
+    const serverNow = () => Date.now() + clockOffset;
+    const remainMin = (eta) => (eta == null ? null : Math.max(0, Math.round((eta - serverNow()) / 60000)));
+
+    function render() {
+      const app = document.getElementById('app');
+      if (!STOPS || STOPS.length === 0) return;
+
+      let html = '';
+
+      STOPS.forEach((stop) => {
+        const dirClass = stop.dir === 'in' ? 'dir-in' : 'dir-out';
+        const dirText = stop.dir === 'in' ? '들어오는 방향' : '나가는 방향';
+
+        html += `
+          <div class="stop-card">
+            <div class="stop-name">
+              <span>${stop.name.ko}</span>
+              <span class="badge-dir ${dirClass}">${dirText}</span>
+            </div>
+        `;
+
+        if (!stop.arrivals || stop.arrivals.length === 0) {
+          html += `<div class="empty-info">현재 운행 중인 버스가 없습니다.</div>`;
+        } else {
+          html += `<table class="bus-table"><tbody>`;
+          stop.arrivals.forEach((a) => {
+            const m1 = remainMin(a.eta1);
+            const m2 = remainMin(a.eta2);
+            
+            const timeStr1 = m1 == null ? '운행종료' : (m1 <= 1 ? '잠시 후 도착' : `${m1}분`);
+            const timeStr2 = m2 != null ? `<span class="t2">다음: ${m2}분</span>` : '';
+            const calcBadge = a.isOffsetCalculated ? `<span class="calc-badge">보정</span>` : '';
+
+            html += `
+              <tr class="bus-row">
+                <td class="route-name">${a.route}${calcBadge}</td>
+                <td class="route-dest">${a.dest.ko}</td>
+                <td class="t1 ${m1 <= 1 ? 'soon' : ''}" data-eta="${a.eta1 ?? ''}">
+                  ${timeStr1}
+                  ${timeStr2}
+                </td>
+              </tr>
+            `;
+          });
+          html += `</tbody></table>`;
+        }
+
+        html += `</div>`;
+      });
+
+      app.innerHTML = html;
+    }
+
+    // 초기 로드 & 30초마다 API 갱신
+    loadStops();
+    setInterval(loadStops, 30000);
+
+    // 매초 실시간 잔여분(min) 차감 및 갱신 시간 표시
+    setInterval(() => {
+      const agoEl = document.getElementById('ago');
+      if (agoEl) {
+        const diffSec = Math.max(0, Math.floor((serverNow() - lastFetchedAt) / 1000));
+        agoEl.textContent = `${diffSec}초 전`;
+      }
+
+      document.querySelectorAll('td.t1[data-eta]').forEach((td) => {
+        const eta = Number(td.dataset.eta);
+        if (!eta) return;
+        const m = remainMin(eta);
+        if (m == null) return;
+
+        const soonText = m <= 1 ? '잠시 후 도착' : `${m}분`;
+        const mainTextNode = td.childNodes[0];
+        if (mainTextNode && mainTextNode.nodeType === Node.TEXT_NODE) {
+          mainTextNode.nodeValue = soonText + ' ';
+        }
+        td.classList.toggle('soon', m <= 1);
+      });
+    }, 1000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadStops();
+    });
+  </script>
+</body>
+</html>
