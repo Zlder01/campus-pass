@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>강의실 위치 찾기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/css/common.css">
+<link rel="stylesheet" href="/css/map.css">
+</head>
+<body>
+<div class="stage">
+  <div class="device">
+    <header class="top">
+      <a href="/index.html" class="home-btn">← 메인</a>
+      <h1>강의실 위치 찾기</h1>
+    </header>
+    
+    <div class="search-box">
+      <input type="text" id="roomInput" placeholder="강의실 입력 (예: 공101, 공106, 108)" value="공101">
+    </div>
+
+    <div class="map-card">
+      <div class="map-header">
+        <span id="buildingName">공과대학 1층</span>
+        <span id="roomName" class="highlight-text">101호</span>
+      </div>
+      <div class="map-wrapper">
+        <img id="floorImage" src="/maps/eng_1f.png" onError="this.src='1층.png';" alt="도면">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polygon id="roomPolygon" class="active-room" points=""></polygon>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/map.js"></script>
+</body>
+</html>
