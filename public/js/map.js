@@ -1,41 +1,98 @@
-// 강의실 및 도면 다각형 좌표 데이터
+// public/js/map.js
+
 let mapData = [];
+let currentBuilding = null;
+let currentFloorObj = null;
 
-async function initMapEngine() {
+// 1. map-data.json 로드
+async function loadMapData() {
   try {
-    const res = await fetch('/map-data.json');
-    if (res.ok) mapData = await res.json();
-  } catch (e) {
-    console.warn('map-data.json 로드 실패, 기본 목업 동작 사용');
+    const res = await fetch('/data/map-data.json');
+    mapData = await res.json();
+    
+    initBuildingSelect();
+  } catch (err) {
+    console.error('지도 데이터를 불러오는 중 오류가 발생했습니다:', err);
   }
 }
 
-// 기본 좌표 모음 (1층 도면 비율 기준)
-const DEFAULT_ROOMS = {
-  "101": { name: "101호", building: "공과대학 1층", polygon: "77.2,76.8 84.8,76.8 84.8,94.6 77.2,94.6" },
-  "106": { name: "106호 (대강당)", building: "공과대학 1층", polygon: "1.8,2.2 21.8,2.2 21.8,43.2 14.5,43.2 14.5,51.0 1.8,51.0" },
-  "108": { name: "108호", building: "공과대학 1층", polygon: "30.1,54.2 49.2,54.2 49.2,72.8 30.1,72.8" }
-};
+// 2. 건물 드롭다운 초기화
+function initBuildingSelect() {
+  const buildingSelect = document.getElementById('buildingSelect');
+  if (!buildingSelect) return;
 
-const input = document.getElementById('roomInput');
-const roomPoly = document.getElementById('roomPolygon');
-const roomNameEl = document.getElementById('roomName');
-const buildingNameEl = document.getElementById('buildingName');
+  buildingSelect.innerHTML = mapData.map(b => 
+    `<option value="${b.buildingId}">${b.buildingName}</option>`
+  ).join('');
 
-function searchAndHighlight(query) {
-  const cleanQ = query.replace(/\s+/g, '').replace('공대', '').replace('공', '');
-  const result = DEFAULT_ROOMS[cleanQ];
+  // 기본 첫 번째 건물 선택
+  if (mapData.length > 0) {
+    selectBuilding(mapData[0].buildingId);
+  }
 
-  if (result) {
-    roomPoly.setAttribute('points', result.polygon);
-    roomNameEl.textContent = result.name;
-    buildingNameEl.textContent = result.building;
+  buildingSelect.addEventListener('change', (e) => {
+    selectBuilding(e.target.value);
+  });
+}
+
+// 3. 건물 선택 처리
+function selectBuilding(buildingId) {
+  currentBuilding = mapData.find(b => b.buildingId === buildingId);
+  if (!currentBuilding) return;
+
+  // 등록된 층이 있으면 첫 번째 층을 기본 선택
+  if (currentBuilding.floors && currentBuilding.floors.length > 0) {
+    currentFloorObj = currentBuilding.floors[0];
   } else {
-    roomPoly.setAttribute('points', '');
-    roomNameEl.textContent = '검색 결과 없음';
+    currentFloorObj = null;
+  }
+
+  renderFloorButtons();
+  updateFloorPlanImage();
+}
+
+// 4. 층 선택 버튼 렌더링
+function renderFloorButtons() {
+  const floorContainer = document.getElementById('floorButtons');
+  if (!floorContainer || !currentBuilding) return;
+
+  if (!currentBuilding.floors || currentBuilding.floors.length === 0) {
+    floorContainer.innerHTML = '<span style="font-size:12px; color:#868e96;">등록된 도면이 없습니다.</span>';
+    return;
+  }
+
+  floorContainer.innerHTML = currentBuilding.floors.map(f => `
+    <button 
+      class="floor-btn ${currentFloorObj && currentFloorObj.floor === f.floor ? 'active' : ''}" 
+      onclick="selectFloor('${f.floor}')"
+    >
+      ${f.floor}
+    </button>
+  `).join('');
+}
+
+// 5. 층 변경 처리
+function selectFloor(floorName) {
+  if (!currentBuilding) return;
+  currentFloorObj = currentBuilding.floors.find(f => f.floor === floorName);
+  renderFloorButtons();
+  updateFloorPlanImage();
+}
+
+// 6. 도면 이미지 경로 업데이트
+function updateFloorPlanImage() {
+  const mapImageElem = document.getElementById('floorPlanImg');
+  if (!mapImageElem) return;
+
+  if (currentFloorObj && currentFloorObj.mapImage) {
+    mapImageElem.src = currentFloorObj.mapImage;
+    mapImageElem.alt = `${currentBuilding.buildingName} ${currentFloorObj.floor} 도면`;
+    mapImageElem.style.display = 'block';
+  } else {
+    mapImageElem.src = '';
+    mapImageElem.alt = '도면 준비 중';
+    mapImageElem.style.display = 'none';
   }
 }
 
-input.addEventListener('input', (e) => searchAndHighlight(e.target.value));
-
-initMapEngine().then(() => searchAndHighlight(input.value));
+document.addEventListener('DOMContentLoaded', loadMapData);
