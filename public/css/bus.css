@@ -1,77 +1,284 @@
 /* public/css/bus.css */
+
+/* 전체 컨테이너 및 탭 레이아웃 */
 .direction-tabs {
-  display: flex; background: var(--surface); margin: 12px 16px 4px; border-radius: 10px;
-  padding: 3px; border: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  background-color: #f1f3f5;
+  padding: 4px;
+  border-radius: 12px;
 }
+
 .direction-tabs button {
-  flex: 1; border: 0; background: transparent; padding: 10px 8px; border-radius: 8px;
-  font-size: 14px; font-weight: 700; color: var(--ink-2); text-align: center; transition: all 180ms ease;
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
+
 .direction-tabs button[aria-selected="true"] {
-  background: var(--crimson); color: #fff; box-shadow: 0 2px 6px rgba(155, 27, 48, 0.3);
+  background-color: #8b0029;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(139, 0, 41, 0.25);
 }
 
+/* 인터랙티브 지도 카드 */
 .map-interactive-card {
-  margin: 8px 16px 4px; background: #fff; border: 1px solid var(--line);
-  border-radius: var(--radius); overflow: hidden; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
 }
-.map-img-wrapper { position: relative; width: 100%; padding-top: 68%; background: #e8ecef; overflow: hidden; }
-.map-img-wrapper img.bg-map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 
+.map-img-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 비율 유지 */
+  background-color: #e9ecef;
+}
+
+.map-img-wrapper .bg-map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 정류장 핀 및 레이블 스타일 */
 .stop-pin {
-  position: absolute; transform: translate(-50%, -100%);
-  display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 5;
+  position: absolute;
+  /* 핀의 바닥 끝이 아니라 숫자 동그라미 위치가 지정 좌표에 정확히 오도록 기준점 보정 */
+  transform: translate(-50%, -20%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  z-index: 5;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.stop-pin:hover { transform: translate(-50%, -108%) scale(1.1); z-index: 10; }
-.pin-icon-wrap { width: 28px; height: 35px; position: relative; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.35)); }
-.pin-icon-wrap img { width: 100%; height: 100%; display: block; object-fit: contain; }
-.pin-num { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); color: #15171c; font-size: 11px; font-weight: 850; text-align: center; line-height: 1; }
-.stop-pin.active { z-index: 12; transform: translate(-50%, -100%) scale(1.25); }
-.stop-pin.active .pin-icon-wrap { filter: drop-shadow(0 4px 10px rgba(155, 27, 48, 0.6)); animation: bounce 1.2s infinite ease-in-out; }
+
+.stop-pin:hover {
+  transform: translate(-50%, -28%) scale(1.1);
+  z-index: 10;
+}
+
+.stop-pin.active {
+  z-index: 12;
+  transform: translate(-50%, -20%) scale(1.2);
+}
+
+.pin-icon-wrap {
+  position: relative;
+  width: 36px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pin-icon-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+}
+
+.pin-num {
+  position: absolute;
+  top: 7px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
 .pin-label {
-  background: rgba(21, 23, 28, 0.88); color: #fff; font-size: 10px; font-weight: 700;
-  padding: 2px 6px; border-radius: 4px; margin-top: -1px; white-space: nowrap; backdrop-filter: blur(2px); box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  margin-top: 2px;
+  background: rgba(33, 37, 41, 0.85);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
 }
-.stop-pin.active .pin-label { background: #9b1b30; font-size: 11px; font-weight: 800; }
 
-@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-
-.offset-info-box {
-  margin: 8px 16px; padding: 10px 12px; background: var(--amber-tint); color: var(--amber-ink);
-  border-radius: 8px; font-size: 12px; line-height: 1.45; display: flex; align-items: flex-start; gap: 8px;
+.stop-pin.active .pin-label {
+  background: #8b0029;
+  color: #ffffff;
+  font-weight: 700;
 }
-.offset-info-box svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
 
-.bus-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px 4px; }
-.bus-meta-l { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.badge-sample { background: var(--amber-tint); color: var(--amber-ink); font-weight: 650; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
-.badge-est { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; font-weight: 650; border-radius: 4px; padding: 1px 5px; font-size: 10px; display: inline-block; }
-.badge-schedule { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; font-weight: 650; border-radius: 4px; padding: 1px 5px; font-size: 10px; display: inline-block; }
+/* 상단 메타 정보 및 새로고침 */
+.bus-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px 12px 8px;
+  font-size: 12px;
+  color: #6c757d;
+}
 
-.refresh { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; min-height: 36px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
-.refresh:hover { border-color: var(--ink-2); }
-.refresh svg { width: 14px; height: 14px; }
+.bus-meta-l {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-.stops { display: grid; gap: 12px; padding: 6px 16px 16px; }
-.stop { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
-.stop-header { display: flex; justify-content: space-between; align-items: baseline; }
-.stop h2 { font-size: 16px; font-weight: 750; }
-.stop-where { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.badge-sample {
+  background-color: #e7f5ff;
+  color: #1c7ed6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
 
-.arrivals { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.arrivals td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
-.arrivals tr:last-child td { border-bottom: 0; }
+.refresh {
+  background: #f1f3f5;
+  border: 1px solid #ced4da;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
 
-.route { display: inline-block; min-width: 52px; text-align: center; font-weight: 750; font-size: 13px; padding: 3px 6px; border-radius: 6px; border: 1.5px solid var(--ink); font-variant-numeric: tabular-nums; }
-.route-m { border-color: #0055b8; color: #0055b8; background: #eef5fc; }
-.route-red { border-color: #d32f2f; color: #d32f2f; background: #fdeaea; }
-.route-green { border-color: #2e7d32; color: #2e7d32; background: #eef7ee; }
+.refresh:hover {
+  background-color: #e9ecef;
+}
 
-.dest { font-size: 13px; color: var(--ink); padding-left: 8px !important; }
+/* 정류장 도착 목록 */
+.stops {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-.t1 { text-align: right; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.t1 small { font-size: 12px; font-weight: 600; margin-left: 0.15em; }
-.t1.soon { color: var(--crimson); }
-.t2 { display: block; font-size: 11px; font-weight: 500; color: var(--ink-2); }
-.t1.ended { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.stop {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.stop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f1f3f5;
+}
+
+.stop-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #212529;
+  margin: 0;
+}
+
+.stop-where {
+  font-size: 12px;
+  color: #868e96;
+}
+
+/* 버스 도착 정보 테이블 */
+.arrivals {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.arrivals tr {
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.arrivals tr:last-child {
+  border-bottom: none;
+}
+
+.arrivals td {
+  padding: 10px 4px;
+  vertical-align: middle;
+}
+
+.route {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.route-m { background-color: #0068b7; }
+.route-red { background-color: #e60012; }
+.route-green { background-color: #37b24d; }
+
+.dest {
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.3;
+}
+
+.badge-est {
+  font-size: 10px;
+  color: #f59f00;
+  font-weight: 600;
+}
+
+.badge-schedule {
+  font-size: 10px;
+  color: #4263eb;
+  font-weight: 600;
+}
+
+.t1 {
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.t1 small {
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 1px;
+}
+
+.t1.soon {
+  color: #e60012;
+}
+
+.t1.ended {
+  color: #adb5bd;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.t2 {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #868e96;
+  margin-top: 2px;
+}
