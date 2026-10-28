@@ -1,284 +1,125 @@
-/* public/css/bus.css */
+/* public/css/common.css */
 
-/* 전체 컨테이너 및 탭 레이아웃 */
-.direction-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  background-color: #f1f3f5;
-  padding: 4px;
-  border-radius: 12px;
+/* 리셋 및 기본 폰트 설정 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
 }
 
-.direction-tabs button {
-  flex: 1;
-  padding: 12px 8px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: #495057;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.direction-tabs button[aria-selected="true"] {
-  background-color: #8b0029;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(139, 0, 41, 0.25);
-}
-
-/* 인터랙티브 지도 카드 */
-.map-interactive-card {
-  position: relative;
-  width: 100%;
-  background: #ffffff;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  margin-bottom: 16px;
-  border: 1px solid #e9ecef;
-}
-
-.map-img-wrapper {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%; /* 16:9 비율 유지 */
-  background-color: #e9ecef;
-}
-
-.map-img-wrapper .bg-map {
-  position: absolute;
-  top: 0;
-  left: 0;
+body, html {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background-color: #f8f9fa;
+  color: #212529;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 정류장 핀 및 레이블 스타일 */
-.stop-pin {
-  position: absolute;
-  /* 핀의 바닥 끝이 아니라 숫자 동그라미 위치가 지정 좌표에 정확히 오도록 기준점 보정 */
-  transform: translate(-50%, -20%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  z-index: 5;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.stop-pin:hover {
-  transform: translate(-50%, -28%) scale(1.1);
-  z-index: 10;
-}
-
-.stop-pin.active {
-  z-index: 12;
-  transform: translate(-50%, -20%) scale(1.2);
-}
-
-.pin-icon-wrap {
-  position: relative;
-  width: 36px;
-  height: 44px;
+/* 전체 스테이지 컨테이너 */
+.stage {
+  width: 100%;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 0;
 }
 
-.pin-icon-wrap img {
+/* 데스크탑 및 모바일 반응형 메인 디바이스 영역 */
+.device {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
-}
-
-.pin-num {
-  position: absolute;
-  top: 7px;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 13px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.pin-label {
-  margin-top: 2px;
-  background: rgba(33, 37, 41, 0.85);
-  color: #ffffff;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(2px);
-}
-
-.stop-pin.active .pin-label {
-  background: #8b0029;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-/* 상단 메타 정보 및 새로고침 */
-.bus-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px 12px 8px;
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.bus-meta-l {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.badge-sample {
-  background-color: #e7f5ff;
-  color: #1c7ed6;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 11px;
-}
-
-.refresh {
-  background: #f1f3f5;
-  border: 1px solid #ced4da;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #495057;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.refresh:hover {
-  background-color: #e9ecef;
-}
-
-/* 정류장 도착 목록 */
-.stops {
+  max-width: 100%; /* 모바일에서는 기본 100% 사용 */
+  min-height: 100vh;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  position: relative;
+  box-shadow: none;
 }
 
-.stop {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.stop-header {
+/* 상단 헤더 공통 스타일 */
+header.top {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background-color: #8b0029; /* 경희대 시그니처 버건디 */
+  color: #ffffff;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #f1f3f5;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.stop-header h2 {
-  font-size: 16px;
+header.top h1 {
+  font-size: 18px;
   font-weight: 700;
-  color: #212529;
+  color: #ffffff;
   margin: 0;
 }
 
-.stop-where {
-  font-size: 12px;
-  color: #868e96;
-}
-
-/* 버스 도착 정보 테이블 */
-.arrivals {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.arrivals tr {
-  border-bottom: 1px solid #f8f9fa;
-}
-
-.arrivals tr:last-child {
-  border-bottom: none;
-}
-
-.arrivals td {
-  padding: 10px 4px;
-  vertical-align: middle;
-}
-
-.route {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 12px;
+header.top .home-btn {
+  position: absolute;
+  left: 16px;
   color: #ffffff;
-  text-align: center;
-}
-
-.route-m { background-color: #0068b7; }
-.route-red { background-color: #e60012; }
-.route-green { background-color: #37b24d; }
-
-.dest {
-  font-size: 13px;
-  color: #495057;
-  line-height: 1.3;
-}
-
-.badge-est {
-  font-size: 10px;
-  color: #f59f00;
+  text-decoration: none;
+  font-size: 14px;
   font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
 }
 
-.badge-schedule {
-  font-size: 10px;
-  color: #4263eb;
-  font-weight: 600;
+header.top .home-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.t1 {
-  text-align: right;
-  font-size: 15px;
-  font-weight: 700;
-  color: #212529;
+/* 스크롤 가능한 본문 패널 */
+main.scroll {
+  flex: 1;
+  padding: 20px;
+  max-width: 1200px; /* PC 반응형 중앙 정렬 제한 폭 */
+  width: 100%;
+  margin: 0 auto; /* PC에서 화면 중앙 배치 */
 }
 
-.t1 small {
-  font-size: 11px;
-  font-weight: 400;
-  margin-left: 1px;
-}
+/* ==========================================
+   데스크탑 PC 전용 반응형 스타일 (768px 이상)
+   ========================================== */
+@media (min-width: 768px) {
+  .stage {
+    padding: 30px 20px;
+  }
 
-.t1.soon {
-  color: #e60012;
-}
+  .device {
+    max-width: 1100px; /* 데스크탑 전용 넓은 프레임 */
+    min-height: calc(100vh - 60px);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    border: 1px solid #e9ecef;
+  }
 
-.t1.ended {
-  color: #adb5bd;
-  font-size: 13px;
-  font-weight: 500;
-}
+  header.top {
+    height: 64px;
+    padding: 0 24px;
+  }
 
-.t2 {
-  display: block;
-  font-size: 11px;
-  font-weight: 400;
-  color: #868e96;
-  margin-top: 2px;
+  header.top h1 {
+    font-size: 20px;
+  }
+
+  header.top .home-btn {
+    font-size: 15px;
+    padding: 8px 16px;
+  }
+
+  main.scroll {
+    padding: 32px;
+  }
 }
