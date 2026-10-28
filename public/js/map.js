@@ -79,13 +79,16 @@ function selectFloor(floorName) {
   updateFloorPlanImage();
 }
 
-// 6. 도면 이미지 경로 업데이트
+// 6. 도면 이미지 경로 업데이트 (.jpg 반영 및 예외 경로 지원)
 function updateFloorPlanImage() {
   const mapImageElem = document.getElementById('floorPlanImg');
   if (!mapImageElem) return;
 
-  if (currentFloorObj && currentFloorObj.mapImage) {
-    mapImageElem.src = currentFloorObj.mapImage;
+  if (currentFloorObj) {
+    // mapImage 경로가 미리 지정되어 있다면 우선 사용하고, 없으면 jpg 동적 경로 생성
+    const imagePath = currentFloorObj.mapImage || `/maps/${currentBuilding.buildingId}_${currentFloorObj.floor.toLowerCase()}.jpg`;
+    
+    mapImageElem.src = imagePath;
     mapImageElem.alt = `${currentBuilding.buildingName} ${currentFloorObj.floor} 도면`;
     mapImageElem.style.display = 'block';
   } else {
