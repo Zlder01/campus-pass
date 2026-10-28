@@ -272,7 +272,10 @@ function renderBusView() {
 
     <div class="map-interactive-card">
       <div class="map-img-wrapper">
-        <img class="bg-map" src="/campus_map.jpg" onError="this.src='/maps/campus_map.jpg';" alt="경희대 조감도 지도" />
+        <img class="bg-map" 
+             src="/campus_map.png" 
+             onError="if(!this.tried1){this.tried1=true;this.src='/campus_map.jpg';}else if(!this.tried2){this.tried2=true;this.src='/maps/campus_map.png';}" 
+             alt="경희대 조감도 지도" />
         ${currentStops.map((st, idx) => `
           <div class="stop-pin ${st.id === state.selectedStopId ? 'active' : ''}" style="left: ${st.pos.x}%; top: ${st.pos.y}%;" data-stop-pin="${st.id}">
             <div class="pin-icon-wrap">
