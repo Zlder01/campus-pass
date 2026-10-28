@@ -14,32 +14,17 @@ const API_URL = 'https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArri
 
 const num = (v) => (v === '' || v == null ? null : Number(v));
 
-// 1. 심야 시간대 판단 (01:00 ~ 05:00)
 function isLateNightOffTime() {
   const currentHour = new Date().getHours();
   return currentHour >= 1 && currentHour < 5;
 }
 
-// 2. 차고지 복귀 및 불량 유령 데이터 필터링 검증
 function isDepotReturnVehicle(b) {
   if (!b) return true;
-
-  // 플래그 검사 (STOP, END, GARAGE 등 정류장 입고/종료 플래그 제외)
-  if (b.flag && b.flag !== 'RUN' && b.flag !== 'NORMAL' && b.flag !== 'OPERATING') {
-    return true;
-  }
-
-  // 차고지 입고 차량: 차량 번호가 없거나 빈 값인 경우
-  if (b.plateNo1 === null || b.plateNo1 === '' || b.plateNo1 === undefined) {
-    return true;
-  }
-
-  // 남은 정류장 수가 비정상적인 경우 (0 이하 또는 90 이상)
+  if (b.flag && b.flag !== 'RUN' && b.flag !== 'NORMAL' && b.flag !== 'OPERATING') return true;
+  if (b.plateNo1 === null || b.plateNo1 === '' || b.plateNo1 === undefined) return true;
   const loc = num(b.locationNo1);
-  if (loc !== null && (loc <= 0 || loc > 90)) {
-    return true;
-  }
-
+  if (loc !== null && (loc <= 0 || loc > 90)) return true;
   return false;
 }
 
@@ -48,14 +33,14 @@ async function fetchStop(key) {
   const apiKey = process.env.BUS_API_KEY;
   const url = `${API_URL}?serviceKey=${apiKey}&stationId=${s.id}&format=json`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+  // 💡 [속도 개선 1] 타임아웃을 4000ms -> 1500ms로 단축 (지연 정류장 빠른 포기)
+  const res = await fetch(url, { signal: AbortSignal.timeout(1500) });
   if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
   
   const json = await res.json();
   let list = json?.response?.msgBody?.busArrivalList ?? [];
   if (!Array.isArray(list)) list = [list];
 
-  // 심야 시간대이거나 차고지 복귀 차량인 경우 걸러냄
   const filteredList = isLateNightOffTime() 
     ? [] 
     : list.filter((b) => ROUTES.has(String(b.routeName)) && !isDepotReturnVehicle(b));
@@ -84,6 +69,9 @@ export default async function handler(req, res) {
   const origin = process.env.ALLOW_ORIGIN || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+  // 💡 [속도 개선 2] Vercel/서버 CDN 엣지 캐싱 적용 (10초간 즉시 응답 + 백그라운드 갱신)
+  res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
 
