@@ -2,38 +2,116 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>캠퍼스 층별 안내도</title>
-  <link rel="stylesheet" href="/css/common.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>캠퍼스 건물 층별 안내</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <style>
-    .map-controls { margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
-    .floor-btn { padding: 6px 12px; border: 1px solid #ced4da; background: #fff; border-radius: 6px; cursor: pointer; }
-    .floor-btn.active { background: #8b0029; color: #fff; border-color: #8b0029; font-weight: bold; }
-    .floor-plan-view { width: 100%; text-align: center; background: #f8f9fa; border-radius: 12px; padding: 12px; }
-    .floor-plan-view img { max-width: 100%; height: auto; border-radius: 8px; }
+    :root {
+      --crimson: #8b0029;
+      --crimson-deep: #5f001c;
+      --ground: #f1f3f5;
+      --surface: #ffffff;
+      --ink: #1f2328;
+      --ink-2: #656d76;
+      --line: #d0d7de;
+      --radius: 12px;
+      --font: "Pretendard Variable", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #c9ced6;
+      font-family: var(--font);
+      color: var(--ink);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .stage { width: 100%; max-width: 412px; height: 100vh; max-height: 892px; background: var(--ground); overflow: hidden; position: relative; border-radius: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
+    
+    /* Top Header */
+    .top { background: var(--crimson); color: #fff; padding: 14px 16px; flex: none; }
+    .top-row { display: flex; align-items: center; justify-content: space-between; height: 36px; }
+    .home-btn { border: 0; background: var(--crimson-deep); color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; }
+    .page-title { font-size: 18px; font-weight: 700; text-align: center; flex: 1; }
+
+    /* Search Box */
+    .search-wrap { padding: 12px 16px 4px; background: var(--crimson); }
+    .search-box { display: flex; align-items: center; background: #fff; border-radius: 10px; height: 44px; padding: 0 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    .search-box input { flex: 1; border: 0; outline: none; font-size: 15px; margin-left: 8px; color: var(--ink); }
+    .search-box svg { width: 18px; height: 18px; color: var(--ink-2); }
+
+    /* Main Content */
+    .content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    
+    .select-wrap select {
+      width: 100%; height: 42px; border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; font-size: 15px; font-weight: 600; background: #fff; outline: none;
+    }
+
+    /* Floor Buttons */
+    .floor-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .floor-btn { flex: none; padding: 8px 14px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .floor-btn.active { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+
+    /* Floor Plan & Overlay Container */
+    .plan-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; position: relative; overflow: hidden; text-align: center; min-height: 240px; display: flex; justify-content: center; align-items: center; }
+    .map-img-container { position: relative; width: 100%; display: inline-block; }
+    .map-img-container img { width: 100%; height: auto; display: block; border-radius: 6px; }
+
+    /* Room Highlight Marker Pin */
+    .room-pin {
+      position: absolute; transform: translate(-50%, -100%); display: none; z-index: 10; pointer-events: none;
+    }
+    .room-pin.active { display: flex; flex-direction: column; align-items: center; animation: bounce 0.6s infinite alternate ease-in-out; }
+    .pin-badge { background: var(--crimson); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .pin-dot { width: 12px; height: 12px; background: var(--crimson); border: 2px solid #fff; border-radius: 50%; margin-top: 2px; }
+
+    @keyframes bounce {
+      from { transform: translate(-50%, -100%); }
+      to { transform: translate(-50%, -120%); }
+    }
   </style>
 </head>
 <body>
-  <div class="stage">
-    <div class="device">
-      <header class="top">
-        <a href="/" class="home-btn">홈</a>
-        <h1>캠퍼스 건물 층별 안내</h1>
-      </header>
-      
-      <main class="scroll">
-        <!-- 건물 및 층 선택 영역 -->
-        <div class="map-controls">
-          <select id="buildingSelect" class="form-select"></select>
-          <div id="floorButtons" class="floor-btns"></div>
-        </div>
 
-        <!-- 층별 도면 표시 영역 (.jpg) -->
-        <div class="floor-plan-view">
-          <img id="floorPlanImg" src="" alt="건물 도면">
-        </div>
-      </main>
+  <div class="stage">
+    <!-- Top Header -->
+    <header class="top">
+      <div class="top-row">
+        <a href="/" class="home-btn">홈</a>
+        <h1 class="page-title">캠퍼스 건물 층별 안내</h1>
+      </div>
+    </header>
+
+    <!-- Search Input Bar -->
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="roomSearchInput" placeholder="강의실 검색 (예: 501, 예디대 501)">
+      </div>
     </div>
+
+    <!-- Main Section -->
+    <main class="content">
+      <div class="select-wrap">
+        <select id="buildingSelect"></select>
+      </div>
+
+      <div id="floorButtons" class="floor-btns"></div>
+
+      <div class="plan-card">
+        <div class="map-img-container" id="mapContainer">
+          <img id="floorPlanImg" src="" alt="도면 이미지">
+          <!-- Dynamic Highlight Pin -->
+          <div id="roomPin" class="room-pin">
+            <span id="pinLabel" class="pin-badge">501호</span>
+            <div class="pin-dot"></div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script src="/js/map.js"></script>
