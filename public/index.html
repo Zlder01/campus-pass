@@ -240,10 +240,10 @@ const STATIONS = {
 
 const FALLBACK_OFFSETS = {
   inbound: { foreign_in: 2.0, life_in: 3.5, square_in: 5.0 },
-  outbound: { square_out: 5.0, life_out: 3.5, foreign_out: 2.0 }
+  outbound: { square_out: 0, life_out: 1.5, foreign_out: 3.0, gate_out: 5.0 }
 };
 
-// 기점(사색의 광장) 출발 시간표 기준 남아있는 분 계산
+// 기점/정문 출발 시간표 기준 남아있는 분 계산
 function getTimetableDeparture(routeObj) {
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -251,7 +251,7 @@ function getTimetableDeparture(routeObj) {
   const endMinutes = routeObj.endHour * 60 + routeObj.endMin;
 
   if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
-    return null; // 운행시간 외 (운행종료)
+    return null;
   }
 
   const elapsed = currentMinutes - startMinutes;
@@ -270,29 +270,19 @@ function generateSimulationData() {
   STATIONS.inbound.forEach(st => {
     data.inbound[st.id] = {};
     TARGET_ROUTES.forEach(r => {
-      if ((r.name === 'M5107' || r.name === '1560') && st.id !== 'gate_in') {
-        data.inbound[st.id][r.name] = null;
-      } else {
-        const offset = st.id === 'gate_in' ? 0 : (FALLBACK_OFFSETS.inbound[st.id] || 0);
-        const times = baseGateIn[r.name].map(t => Math.max(1, Math.round(t + offset)));
-        data.inbound[st.id][r.name] = { t1: times[0], t2: times[1] };
-      }
+      const offset = st.id === 'gate_in' ? 0 : (FALLBACK_OFFSETS.inbound[st.id] || 0);
+      const times = baseGateIn[r.name].map(t => Math.max(1, Math.round(t + offset)));
+      data.inbound[st.id][r.name] = { t1: times[0], t2: times[1] };
     });
   });
 
   STATIONS.outbound.forEach(st => {
     data.outbound[st.id] = {};
     TARGET_ROUTES.forEach(r => {
-      if ((r.name === 'M5107' || r.name === '1560') && st.id !== 'gate_out') {
-        data.outbound[st.id][r.name] = null;
-      } else {
-        const gateTime1 = baseGateOut[r.name][0];
-        const gateTime2 = baseGateOut[r.name][1];
-        const off = FALLBACK_OFFSETS.outbound[st.id] || 0;
-        const t1 = Math.max(1, Math.round(gateTime1 - off));
-        const t2 = Math.max(t1 + 3, Math.round(gateTime2 - off));
-        data.outbound[st.id][r.name] = { t1, t2 };
-      }
+      const off = FALLBACK_OFFSETS.outbound[st.id] || 0;
+      const t1 = Math.max(1, Math.round(baseGateOut[r.name][0] + off));
+      const t2 = Math.max(t1 + 3, Math.round(baseGateOut[r.name][1] + off));
+      data.outbound[st.id][r.name] = { t1, t2 };
     });
   });
 
@@ -353,86 +343,162 @@ async function fetchRealApiData() {
   }
 }
 
-function computeDynamicOffsets(direction) {
-  const isIn = direction === 'inbound';
-  const gateId = isIn ? 'gate_in' : 'gate_out';
-  const stations = STATIONS[direction];
-  const raw = state.busRawData[direction];
-  const computedOffsets = { ...FALLBACK_OFFSETS[direction] };
-  const validRoutes = ['5100', '1112', '7000', '9'];
-
-  stations.forEach(st => {
-    if (st.id === gateId) return;
-    const samples = [];
-    validRoutes.forEach(rName => {
-      const gateData = raw[gateId]?.[rName];
-      const stopData = raw[st.id]?.[rName];
-      if (gateData?.t1 != null && stopData?.t1 != null) {
-        const diff = isIn ? stopData.t1 - gateData.t1 : gateData.t1 - stopData.t1;
-        if (diff >= 0) samples.push(diff);
-      }
-    });
-    if (samples.length > 0) {
-      computedOffsets[st.id] = Math.round((samples.reduce((a, b) => a + b, 0) / samples.length) * 10) / 10;
-    }
-  });
-
-  return computedOffsets;
-}
-
 function getProcessedStopArrivals(direction) {
   const isIn = direction === 'inbound';
-  const gateId = isIn ? 'gate_in' : 'gate_out';
   const stations = STATIONS[direction];
   const raw = state.busRawData[direction];
-  const offsets = computeDynamicOffsets(direction);
 
-  return stations.map(st => {
-    const routeArrivals = TARGET_ROUTES.map(rt => {
-      let routeData = raw[st.id]?.[rt.name];
+  const result = stations.map(st => ({
+    ...st,
+    arrivals: []
+  }));
 
-      // 사색의 광장 (기점)에서 API 도착 데이터가 없을 경우 시간표(배차간격) 백업 추정 적용
-      if (!routeData && st.id === 'square_out') {
+  TARGET_ROUTES.forEach(rt => {
+    if (isIn) {
+      // 들어오는 방향 (정문 -> 외대 -> 생명대 -> 사색의광장)
+      let baseT1 = raw['gate_in']?.[rt.name]?.t1;
+      let baseT2 = raw['gate_in']?.[rt.name]?.t2;
+      let isGateApi = baseT1 != null;
+      let isTimetableUsed = false;
+
+      if (!isGateApi) {
         const tt = getTimetableDeparture(rt);
         if (tt) {
-          routeData = tt;
+          baseT1 = tt.t1;
+          baseT2 = tt.t2;
+          isTimetableUsed = true;
         }
       }
 
-      if (routeData) {
-        return {
-          route: rt.name,
-          type: rt.type,
-          desc: rt.desc,
-          t1: routeData.t1,
-          t2: routeData.t2,
-          isEstimated: false,
-          isTimetable: !!routeData.isTimetable
-        };
+      stations.forEach(st => {
+        let directData = raw[st.id]?.[rt.name];
+        const stopIdx = result.findIndex(s => s.id === st.id);
+
+        if (directData && directData.t1 != null) {
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: directData.t1,
+            t2: directData.t2,
+            isEstimated: false,
+            isTimetable: false
+          });
+        } else if (baseT1 != null) {
+          let offset = 0;
+          if (st.id === 'foreign_in') offset = 2.0;
+          else if (st.id === 'life_in') offset = 3.5;
+          else if (st.id === 'square_in') offset = 5.0;
+
+          const estT1 = Math.max(1, Math.round(baseT1 + offset));
+          const estT2 = baseT2 != null ? Math.max(estT1 + 4, Math.round(baseT2 + offset)) : null;
+
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: estT1,
+            t2: estT2,
+            isEstimated: !isTimetableUsed,
+            isTimetable: isTimetableUsed
+          });
+        } else {
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: null,
+            t2: null,
+            isEstimated: false,
+            isTimetable: false
+          });
+        }
+      });
+
+    } else {
+      // 나가는 방향 (사색의광장 기점 -> 생명대 -> 외대 -> 정문)
+      let baseT1 = raw['square_out']?.[rt.name]?.t1;
+      let baseT2 = raw['square_out']?.[rt.name]?.t2;
+      let isSquareApi = baseT1 != null;
+      let isTimetableUsed = false;
+
+      if (!isSquareApi) {
+        const tt = getTimetableDeparture(rt);
+        if (tt) {
+          baseT1 = tt.t1;
+          baseT2 = tt.t2;
+          isTimetableUsed = true;
+        }
       }
 
-      const gateData = raw[gateId]?.[rt.name];
-      if (gateData && gateData.t1 != null) {
-        const offset = offsets[st.id] || 0;
-        let estT1 = isIn ? Math.max(1, Math.round(gateData.t1 + offset)) : Math.max(1, Math.round(gateData.t1 - offset));
-        let estT2 = gateData.t2 != null ? (isIn ? Math.max(estT1 + 4, Math.round(gateData.t2 + offset)) : Math.max(estT1 + 4, Math.round(gateData.t2 - offset))) : null;
+      let gateT1 = raw['gate_out']?.[rt.name]?.t1;
 
-        return {
-          route: rt.name,
-          type: rt.type,
-          desc: rt.desc,
-          t1: estT1,
-          t2: estT2,
-          isEstimated: true,
-          isTimetable: false
-        };
-      }
+      stations.forEach(st => {
+        let directData = raw[st.id]?.[rt.name];
+        const stopIdx = result.findIndex(s => s.id === st.id);
 
-      return { route: rt.name, type: rt.type, desc: rt.desc, t1: null, t2: null, isEstimated: false, isTimetable: false };
-    });
+        if (directData && directData.t1 != null) {
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: directData.t1,
+            t2: directData.t2,
+            isEstimated: false,
+            isTimetable: false
+          });
+        } else if (baseT1 != null) {
+          // 기점(사색의 광장) 시각 기준 순방향 시간 가산!
+          let offset = 0;
+          if (st.id === 'square_out') offset = 0;
+          else if (st.id === 'life_out') offset = 1.5;
+          else if (st.id === 'foreign_out') offset = 3.0;
+          else if (st.id === 'gate_out') offset = 5.0;
 
-    return { ...st, arrivals: routeArrivals };
+          const estT1 = Math.max(1, Math.round(baseT1 + offset));
+          const estT2 = baseT2 != null ? Math.max(estT1 + 4, Math.round(baseT2 + offset)) : null;
+
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: estT1,
+            t2: estT2,
+            isEstimated: !isTimetableUsed,
+            isTimetable: isTimetableUsed
+          });
+        } else if (gateT1 != null) {
+          let minusOffset = 0;
+          if (st.id === 'square_out') minusOffset = 5.0;
+          else if (st.id === 'life_out') minusOffset = 3.5;
+          else if (st.id === 'foreign_out') minusOffset = 2.0;
+
+          const estT1 = Math.max(1, Math.round(gateT1 - minusOffset));
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: estT1,
+            t2: null,
+            isEstimated: true,
+            isTimetable: false
+          });
+        } else {
+          result[stopIdx].arrivals.push({
+            route: rt.name,
+            type: rt.type,
+            desc: rt.desc,
+            t1: null,
+            t2: null,
+            isEstimated: false,
+            isTimetable: false
+          });
+        }
+      });
+    }
   });
+
+  return result;
 }
 
 const isDesktop = () => (state.layout === 'auto' ? window.innerWidth >= 900 : state.layout === 'desktop');
@@ -484,7 +550,7 @@ function landingView() {
             <b>${quickest.t1 ? `${quickest.t1}분` : '운행종료'}</b>
             <span>정문 기준 · ${esc(quickest.route)} (${esc(quickest.desc)})</span>
           </span>
-          <span class="choice-desc">M5107, 1560번의 교내 정류장 이동시간 & 기점 시간표 보정 지원</span>
+          <span class="choice-desc">교내 노선 구간 이동시간 및 기점 출발 시간표 자동 연동 지원</span>
           <span class="choice-go">버스 도착 확인하기 ${I.arrow}</span>
         </button>
 
@@ -517,8 +583,8 @@ function busView() {
     ${I.info}
     <div>
       <strong>보정 및 시간표 계산 안내:</strong><br>
-      · 교내 정류장 API 미제공 노선(M5107/1560)은 정문 이동시간을 역산 및 보정합니다.<br>
-      · 사색의 광장(기점)에 대기 중인 노선은 정시 시간표/배차간격을 자동 적용합니다.
+      · 교내 API 미제공 노선은 주요 기준점(기점 및 정문)의 데이터를 기반으로 이동 시간을 자동 가산합니다.<br>
+      · 대기 중이거나 API 미인식 시 노선 정시 시간표 및 배차간격을 자동 적용합니다.
     </div>
   </div>`;
 
@@ -543,7 +609,7 @@ function busView() {
           </td>
           <td class="dest">
             ${esc(a.desc)}
-            ${a.isEstimated ? '<br><span class="badge-est">[정문기준 추정]</span>' : ''}
+            ${a.isEstimated ? '<br><span class="badge-est">[기준점 추정]</span>' : ''}
             ${a.isTimetable ? '<br><span class="badge-schedule">[시간표 기준]</span>' : ''}
           </td>
           <td class="t1 ${a.t1 == null ? 'ended' : a.t1 <= 1 ? 'soon' : ''}">
