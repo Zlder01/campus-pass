@@ -1,239 +1,666 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Campus Pass - 경희대 버스 실시간 도착 정보</title>
-  <style>
-    :root {
-      --primary: #800020;
-      --bg: #f5f6f8;
-      --card-bg: #ffffff;
-      --text: #191f28;
-      --sub-text: #8b95a1;
-      --accent: #e52528;
-      --border: #e5e8eb;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Campus Pass Mockup - 경희대학교 버스 도착 예측</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --crimson: #9b1b30;
+    --crimson-deep: #6f1222;
+    --crimson-tint: #f6e6e9;
+    --ground: #eef0f3;
+    --surface: #ffffff;
+    --ink: #15171c;
+    --ink-2: #4f5562;
+    --line: #d4d8df;
+    --plate: #1d2027;
+    --plate-ink: #ffffff;
+    --plate-ink-2: #b9bec9;
+    --wall: #2b2f38;
+    --room: #ffffff;
+    --corridor: #e3e6eb;
+    --amber-tint: #fdf0dc;
+    --amber-ink: #6b3b00;
+    --blue-tint: #e3f2fd;
+    --blue-ink: #0d47a1;
+    --green-tint: #e8f5e9;
+    --green-ink: #1b5e20;
+    --focus: #1d5fd1;
+    --radius: 12px;
+    --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 40px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #c9ced6;
+    font-family: var(--font);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+  }
+  ::selection { background: var(--crimson); color: #fff; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  h1, h2, h3 { margin: 0; }
 
-    header { background: var(--primary); color: white; padding: 20px 16px; text-align: center; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    header h1 { font-size: 1.25rem; font-weight: 700; }
-    header .update-time { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; font-weight: normal; }
+  /* Top Review Control Bar */
+  .review {
+    flex: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 16px;
+    background: #2a2e36; color: #dfe2e8; font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .review-group { display: flex; align-items: center; gap: 8px; }
+  .review-seg { display: inline-flex; background: #15171c; border-radius: 8px; padding: 3px; }
+  .review-seg button { border: 0; background: transparent; color: #b9bec9; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; min-height: 28px; }
+  .review-seg button[aria-pressed="true"] { background: #fff; color: var(--ink); }
+  .review-note { color: #9aa0ab; font-size: 12px; }
 
-    .container { max-width: 600px; margin: 16px auto; padding: 0 16px; }
+  .stage { flex: 1; min-height: 0; display: flex; }
 
-    .stop-card { background: var(--card-bg); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
-    .stop-name { font-size: 1.05rem; font-weight: 700; color: #191f28; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .stage.phone { align-items: safe center; justify-content: center; padding: 16px; overflow: auto; }
+  .device {
+    width: 390px; height: 844px; flex: none;
+    border-radius: 36px; border: 10px solid #101216;
+    box-shadow: 0 30px 60px -20px rgba(16, 18, 22, 0.45);
+    overflow: hidden; position: relative; background: var(--ground);
+  }
+  @media (max-width: 500px) {
+    .stage.phone { padding: 0; }
+    .stage.phone .device { width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  }
+  .stage.desktop .device { width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
 
-    .badge-dir { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500; }
-    .dir-in { background: #e8f3ff; color: #1b64da; }
-    .dir-out { background: #fff8e6; color: #b7791f; }
+  .app { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--ground); }
 
-    .bus-table { width: 100%; border-collapse: collapse; }
-    .bus-row { border-bottom: 1px dashed var(--border); }
-    .bus-row:last-child { border-bottom: none; }
-    .bus-row td { padding: 10px 0; vertical-align: middle; }
+  /* Top App Bar */
+  .top { background: var(--crimson); color: #fff; padding: 12px 16px; flex: none; }
+  .top-row { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+  .brand { font-weight: 750; font-size: 18px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+  .brand svg { width: 22px; height: 22px; }
+  .page-title { font-weight: 700; font-size: 17px; flex: 1; min-width: 0; }
+  .spacer { flex: 1; }
+  .home-btn {
+    border: 0; background: var(--crimson-deep); color: #fff; display: inline-flex; align-items: center; gap: 2px;
+    font-size: 13px; font-weight: 650; padding: 0 10px 0 4px; border-radius: 8px; min-height: 36px; flex: none;
+  }
+  .home-btn:hover { background: #5a0e1b; }
+  .home-btn svg { width: 18px; height: 18px; }
+  .lang { display: inline-flex; background: var(--crimson-deep); border-radius: 999px; padding: 3px; flex: none; }
+  .lang button { border: 0; background: transparent; color: #f2d3d9; font-size: 12px; font-weight: 650; padding: 3px 9px; border-radius: 999px; min-height: 26px; }
+  .lang button[aria-pressed="true"] { background: #fff; color: var(--crimson-deep); }
 
-    .route-name { font-weight: 700; font-size: 1rem; color: #191f28; width: 85px; }
-    .route-dest { font-size: 0.8rem; color: var(--sub-text); }
-    
-    .t1 { text-align: right; font-weight: 700; font-size: 1rem; color: var(--accent); }
-    .t1.soon { animation: pulse 1.5s infinite; }
-    .t2 { display: block; font-size: 0.75rem; color: var(--sub-text); font-weight: normal; }
+  .scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .main { flex: 1; min-height: 0; padding-bottom: 24px; display: flex; flex-direction: column; }
 
-    .calc-badge { font-size: 0.65rem; background: #f2f4f6; color: #4e5968; padding: 2px 5px; border-radius: 4px; margin-left: 4px; vertical-align: middle; font-weight: normal; }
-    .empty-info { text-align: center; color: var(--sub-text); font-size: 0.85rem; padding: 12px 0; }
+  /* Landing Screen */
+  .landing { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 20px 16px 24px; gap: 14px; }
+  .landing-lead { font-size: 15px; color: var(--ink-2); line-height: 1.5; margin: 0 2px 2px; }
+  .choices { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .choice {
+    flex: 1; border: 0; border-radius: 16px; text-align: left; padding: 20px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+    position: relative; overflow: hidden; min-height: 180px;
+    box-shadow: 0 10px 24px -14px rgba(16, 18, 22, 0.5);
+    transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  }
+  .choice:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(16, 18, 22, 0.6); }
+  .choice-map { background: var(--crimson); color: #fff; }
+  .choice-bus { background: var(--plate); color: #fff; }
+  .choice-title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+  .choice-alt { font-size: 14px; font-weight: 550; opacity: 0.75; margin-top: 2px; }
+  .choice-desc { font-size: 14px; line-height: 1.45; color: rgba(255,255,255,0.85); }
+  .choice-go { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; }
+  .choice-go svg { width: 18px; height: 18px; }
+  .choice-bus .next { display: flex; align-items: baseline; gap: 8px; }
+  .choice-bus .next b { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .choice-bus .next span { font-size: 13px; color: var(--plate-ink-2); }
+  .landing-foot { font-size: 12px; color: var(--ink-2); text-align: center; }
 
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-  </style>
+  /* Bus View Specifics */
+  .direction-tabs {
+    display: flex; background: var(--surface); margin: 12px 16px 4px; border-radius: 10px;
+    padding: 3px; border: 1px solid var(--line);
+  }
+  .direction-tabs button {
+    flex: 1; border: 0; background: transparent; padding: 10px 8px; border-radius: 8px;
+    font-size: 14px; font-weight: 700; color: var(--ink-2); text-align: center;
+    transition: all 180ms ease;
+  }
+  .direction-tabs button[aria-selected="true"] {
+    background: var(--crimson); color: #fff; box-shadow: 0 2px 6px rgba(155, 27, 48, 0.3);
+  }
+
+  .offset-info-box {
+    margin: 8px 16px; padding: 10px 12px; background: var(--amber-tint); color: var(--amber-ink);
+    border-radius: 8px; font-size: 12px; line-height: 1.45; display: flex; align-items: flex-start; gap: 8px;
+  }
+  .offset-info-box svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+
+  .bus-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 4px; }
+  .bus-meta-l { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .badge-sample { background: var(--amber-tint); color: var(--amber-ink); font-weight: 650; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+  .badge-est { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; font-weight: 650; border-radius: 4px; padding: 1px 5px; font-size: 10px; display: inline-block; }
+
+  .refresh { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; min-height: 36px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+  .refresh:hover { border-color: var(--ink-2); }
+  .refresh svg { width: 14px; height: 14px; }
+
+  .stops { display: grid; gap: 12px; padding: 6px 16px 16px; }
+  .stop { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .stop-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .stop h2 { font-size: 16px; font-weight: 750; }
+  .stop-where { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+
+  .arrivals { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .arrivals td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .arrivals tr:last-child td { border-bottom: 0; }
+
+  .route { display: inline-block; min-width: 52px; text-align: center; font-weight: 750; font-size: 13px; padding: 3px 6px; border-radius: 6px; border: 1.5px solid var(--ink); font-variant-numeric: tabular-nums; }
+  .route-m { border-color: #0055b8; color: #0055b8; background: #eef5fc; }
+  .route-red { border-color: #d32f2f; color: #d32f2f; background: #fdeaea; }
+  .route-green { border-color: #2e7d32; color: #2e7d32; background: #eef7ee; }
+
+  .dest { font-size: 13px; color: var(--ink); padding-left: 8px !important; }
+
+  .t1 { text-align: right; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .t1 small { font-size: 12px; font-weight: 600; margin-left: 0.15em; }
+  .t1.soon { color: var(--crimson); }
+  .t2 { display: block; font-size: 11px; font-weight: 500; color: var(--ink-2); }
+  .t1.ended { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+
+  /* Map View UI */
+  .map-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; }
+  .map-wrap svg { display: block; width: 100%; height: auto; }
+
+  /* Desktop layout tweaks */
+  .desktop .top { padding: 10px 24px; }
+  .desktop .landing { align-items: center; justify-content: center; padding: 40px 24px; gap: 20px; }
+  .desktop .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: min(960px, 100%); }
+  .desktop .choice { min-height: 300px; padding: 24px; }
+  .desktop .choice-title { font-size: 32px; }
+
+  .bus-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, 1fr); }
+  .bus-cols .map-side { padding: 16px 24px; border-right: 1px solid var(--line); }
+  .bus-cols .map-side h2 { font-size: 20px; font-weight: 750; margin-bottom: 12px; }
+  .bus-cols .stops { padding: 6px 24px 24px; }
+  .desktop .bus-meta { padding: 16px 24px 6px; }
+</style>
 </head>
 <body>
 
-  <header>
-    <h1>Campus Pass 🚌</h1>
-    <div class="update-time">최근 갱신: <span id="ago">로딩 중...</span></div>
-  </header>
-
-  <div class="container" id="app">
-    <div class="empty-info">실시간 버스 정보를 불러오는 중입니다...</div>
+<div class="review" role="group" aria-label="Mockup view controls">
+  <div class="review-group">
+    <span class="review-note">디스플레이:</span>
+    <div class="review-seg">
+      <button type="button" data-layout="auto" aria-pressed="true">자동</button>
+      <button type="button" data-layout="phone" aria-pressed="false">모바일</button>
+      <button type="button" data-layout="desktop" aria-pressed="false">데스크톱</button>
+    </div>
   </div>
 
-  <script>
-    let STOPS = [];
-    let clockOffset = 0;
-    let lastFetchedAt = Date.now();
+  <div class="review-group">
+    <span class="review-note">데이터 모드:</span>
+    <div class="review-seg">
+      <button type="button" data-mode="sim" aria-pressed="false">시뮬레이션</button>
+      <button type="button" data-mode="api" aria-pressed="true">실시간 API (연동됨)</button>
+    </div>
+  </div>
+</div>
 
-    const TARGET_OFFSET_ROUTES = ['M5107', '1560'];
+<div class="stage phone" id="stage">
+  <div class="device">
+    <div class="app" id="app"></div>
+  </div>
+</div>
 
-    // 정문 시각 기준 오프셋 보정 계산
-    function applyGateOffsets(stops, fetchedAt) {
-      const mainGate = stops.find((s) => s.id === 'main-gate');
-      if (!mainGate) return;
+<script>
+const TARGET_ROUTES = [
+  { name: 'M5107', type: 'm', desc: '서울역 방면 (광역급행)' },
+  { name: '5100', type: 'red', desc: '강남역 방면 (직행좌석)' },
+  { name: '1112', type: 'red', desc: '강변역 방면 (직행좌석)' },
+  { name: '7000', type: 'red', desc: '사당역 방면 (직행좌석)' },
+  { name: '1560', type: 'red', desc: '신논현역 방면 (직행좌석)' },
+  { name: '9', type: 'green', desc: '수원역·용남고속 (일반)' }
+];
 
-      TARGET_OFFSET_ROUTES.forEach((routeName) => {
-        const gateBus = mainGate.arrivals.find((a) => a.route === routeName);
-        if (!gateBus || gateBus.eta1 == null) return;
+const STATIONS = {
+  inbound: [
+    { id: 'gate_in', name: { ko: '경희대정문', en: 'Main Gate' }, where: { ko: '입교 방향', en: 'Inbound' }, pos: { x: 72, y: 240 } },
+    { id: 'foreign_in', name: { ko: '외국어대학', en: 'Foreign Languages' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 140, y: 170 } },
+    { id: 'life_in', name: { ko: '생명과학대', en: 'Life Sciences' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 210, y: 110 } },
+    { id: 'square_in', name: { ko: '사색의 광장 (종점)', en: 'Square of Thought' }, where: { ko: '하차 전용', en: 'Terminus' }, pos: { x: 280, y: 50 } }
+  ],
+  outbound: [
+    { id: 'square_out', name: { ko: '사색의 광장 (기점)', en: 'Square of Thought' }, where: { ko: '승차 기점', en: 'Departure' }, pos: { x: 280, y: 50 } },
+    { id: 'life_out', name: { ko: '생명과학대·산업대학', en: 'Life & Applied Sciences' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 210, y: 110 } },
+    { id: 'foreign_out', name: { ko: '경희대체육대학·외대', en: 'Sports & Foreign Lang' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 140, y: 170 } },
+    { id: 'gate_out', name: { ko: '경희대정문 (출교)', en: 'Main Gate' }, where: { ko: '시외/수원 방면', en: 'Outbound' }, pos: { x: 72, y: 240 } }
+  ]
+};
 
-        stops.forEach((stop) => {
-          // 1. Inbound (캠퍼스 들어오는 방향)
-          if (stop.dir === 'in' && stop.id !== 'main-gate') {
-            const hasRoute = stop.arrivals.some((a) => a.route === routeName);
-            if (!hasRoute) {
-              const offsetMinutes = stop.id === 'foreign' ? 2 : 4;
-              const offsetMs = offsetMinutes * 60 * 1000;
-              
-              stop.arrivals.push({
-                route: routeName,
-                dest: { ko: '사색의 광장 방면', en: 'Inbound' },
-                t1: gateBus.t1 != null ? gateBus.t1 + offsetMinutes : null,
-                t2: null,
-                eta1: gateBus.eta1 + offsetMs,
-                eta2: null,
-                isOffsetCalculated: true
-              });
-            }
-          }
+const FALLBACK_OFFSETS = {
+  inbound: { foreign_in: 2.0, life_in: 3.5, square_in: 5.0 },
+  outbound: { square_out: 5.0, life_out: 3.5, foreign_out: 2.0 }
+};
 
-          // 2. Outbound (캠퍼스 나가는 방향)
-          if (stop.dir === 'out') {
-            const hasRoute = stop.arrivals.some((a) => a.route === routeName);
-            if (!hasRoute) {
-              let minusMinutes = 2;
-              if (stop.id === 'lifesci-ind') minusMinutes = 4;
-              if (stop.id === 'square') minusMinutes = 6;
+function generateSimulationData() {
+  const baseGateIn = { 'M5107': [3, 14], '5100': [2, 11], '1112': [5, 18], '7000': [8, 22], '1560': [1, 15], '9': [4, 12] };
+  const baseGateOut = { 'M5107': [6, 17], '5100': [5, 14], '1112': [8, 21], '7000': [10, 25], '1560': [4, 18], '9': [7, 16] };
+  const data = { inbound: {}, outbound: {} };
 
-              const offsetMs = minusMinutes * 60 * 1000;
-              const calculatedEta = gateBus.eta1 - offsetMs;
-
-              if (calculatedEta > fetchedAt) {
-                stop.arrivals.push({
-                  route: routeName,
-                  dest: { ko: '정문/차고지 방면', en: 'Outbound' },
-                  t1: Math.max(0, Math.round((calculatedEta - fetchedAt) / 60000)),
-                  t2: null,
-                  eta1: calculatedEta,
-                  eta2: null,
-                  isOffsetCalculated: true
-                });
-              }
-            }
-          }
-        });
-      });
-    }
-
-    async function loadStops() {
-      try {
-        const sent = Date.now();
-        const res = await fetch('/api/bus', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        const j = await res.json();
-        const recv = Date.now();
-
-        clockOffset = j.fetchedAt - (sent + recv) / 2;
-        lastFetchedAt = j.fetchedAt;
-
-        j.stops.forEach((stop) => {
-          stop.arrivals.forEach((a) => {
-            a.eta1 = a.t1 != null ? j.fetchedAt + a.t1 * 60000 : null;
-            a.eta2 = a.t2 != null ? j.fetchedAt + a.t2 * 60000 : null;
-          });
-        });
-
-        applyGateOffsets(j.stops, j.fetchedAt);
-        STOPS = j.stops;
-        render();
-      } catch (err) {
-        console.error('Bus data load failed:', err);
+  STATIONS.inbound.forEach(st => {
+    data.inbound[st.id] = {};
+    TARGET_ROUTES.forEach(r => {
+      if ((r.name === 'M5107' || r.name === '1560') && st.id !== 'gate_in') {
+        data.inbound[st.id][r.name] = null;
+      } else {
+        const offset = st.id === 'gate_in' ? 0 : (FALLBACK_OFFSETS.inbound[st.id] || 0);
+        const times = baseGateIn[r.name].map(t => Math.max(1, Math.round(t + offset)));
+        data.inbound[st.id][r.name] = { t1: times[0], t2: times[1] };
       }
-    }
-
-    const serverNow = () => Date.now() + clockOffset;
-    const remainMin = (eta) => (eta == null ? null : Math.max(0, Math.round((eta - serverNow()) / 60000)));
-
-    function render() {
-      const app = document.getElementById('app');
-      if (!STOPS || STOPS.length === 0) return;
-
-      let html = '';
-
-      STOPS.forEach((stop) => {
-        const dirClass = stop.dir === 'in' ? 'dir-in' : 'dir-out';
-        const dirText = stop.dir === 'in' ? '들어오는 방향' : '나가는 방향';
-
-        html += `
-          <div class="stop-card">
-            <div class="stop-name">
-              <span>${stop.name.ko}</span>
-              <span class="badge-dir ${dirClass}">${dirText}</span>
-            </div>
-        `;
-
-        if (!stop.arrivals || stop.arrivals.length === 0) {
-          html += `<div class="empty-info">현재 운행 중인 버스가 없습니다.</div>`;
-        } else {
-          html += `<table class="bus-table"><tbody>`;
-          stop.arrivals.forEach((a) => {
-            const m1 = remainMin(a.eta1);
-            const m2 = remainMin(a.eta2);
-            
-            const timeStr1 = m1 == null ? '운행종료' : (m1 <= 1 ? '잠시 후 도착' : `${m1}분`);
-            const timeStr2 = m2 != null ? `<span class="t2">다음: ${m2}분</span>` : '';
-            const calcBadge = a.isOffsetCalculated ? `<span class="calc-badge">보정</span>` : '';
-
-            html += `
-              <tr class="bus-row">
-                <td class="route-name">${a.route}${calcBadge}</td>
-                <td class="route-dest">${a.dest.ko}</td>
-                <td class="t1 ${m1 <= 1 ? 'soon' : ''}" data-eta="${a.eta1 ?? ''}">
-                  ${timeStr1}
-                  ${timeStr2}
-                </td>
-              </tr>
-            `;
-          });
-          html += `</tbody></table>`;
-        }
-
-        html += `</div>`;
-      });
-
-      app.innerHTML = html;
-    }
-
-    // 초기 로드 & 30초마다 API 갱신
-    loadStops();
-    setInterval(loadStops, 30000);
-
-    // 매초 실시간 잔여분(min) 차감 및 갱신 시간 표시
-    setInterval(() => {
-      const agoEl = document.getElementById('ago');
-      if (agoEl) {
-        const diffSec = Math.max(0, Math.floor((serverNow() - lastFetchedAt) / 1000));
-        agoEl.textContent = `${diffSec}초 전`;
-      }
-
-      document.querySelectorAll('td.t1[data-eta]').forEach((td) => {
-        const eta = Number(td.dataset.eta);
-        if (!eta) return;
-        const m = remainMin(eta);
-        if (m == null) return;
-
-        const soonText = m <= 1 ? '잠시 후 도착' : `${m}분`;
-        const mainTextNode = td.childNodes[0];
-        if (mainTextNode && mainTextNode.nodeType === Node.TEXT_NODE) {
-          mainTextNode.nodeValue = soonText + ' ';
-        }
-        td.classList.toggle('soon', m <= 1);
-      });
-    }, 1000);
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) loadStops();
     });
-  </script>
+  });
+
+  STATIONS.outbound.forEach(st => {
+    data.outbound[st.id] = {};
+    TARGET_ROUTES.forEach(r => {
+      if ((r.name === 'M5107' || r.name === '1560') && st.id !== 'gate_out') {
+        data.outbound[st.id][r.name] = null;
+      } else {
+        const gateTime1 = baseGateOut[r.name][0];
+        const gateTime2 = baseGateOut[r.name][1];
+        const off = FALLBACK_OFFSETS.outbound[st.id] || 0;
+        const t1 = Math.max(1, Math.round(gateTime1 - off));
+        const t2 = Math.max(t1 + 3, Math.round(gateTime2 - off));
+        data.outbound[st.id][r.name] = { t1, t2 };
+      }
+    });
+  });
+
+  return data;
+}
+
+const state = {
+  lang: 'ko',
+  layout: 'auto',
+  page: 'landing',
+  direction: 'inbound',
+  dataMode: 'api', // 기본값을 실시간 API 모드로 설정
+  query: '',
+  updatedAt: Date.now(),
+  busRawData: generateSimulationData()
+};
+
+// Vercel 실시간 API 데이터 가져오기 연동
+async function fetchRealApiData() {
+  try {
+    const res = await fetch('/api/bus', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const apiRes = await res.json();
+
+    const newRaw = { inbound: {}, outbound: {} };
+    STATIONS.inbound.forEach(st => newRaw.inbound[st.id] = {});
+    STATIONS.outbound.forEach(st => newRaw.outbound[st.id] = {});
+
+    const mapStopId = (vId, dir) => {
+      if (dir === 'in') {
+        if (vId === 'main-gate') return 'gate_in';
+        if (vId === 'foreign') return 'foreign_in';
+        if (vId === 'lifesci') return 'life_in';
+        if (vId === 'square') return 'square_in';
+      } else {
+        if (vId === 'square') return 'square_out';
+        if (vId === 'lifesci-ind') return 'life_out';
+        if (vId === 'pe-foreign') return 'foreign_out';
+        if (vId === 'main-gate') return 'gate_out';
+      }
+      return null;
+    };
+
+    apiRes.stops.forEach(stop => {
+      const targetId = mapStopId(stop.id, stop.dir);
+      const targetDict = stop.dir === 'in' ? newRaw.inbound : newRaw.outbound;
+      if (targetId && targetDict[targetId]) {
+        stop.arrivals.forEach(arr => {
+          targetDict[targetId][arr.route] = { t1: arr.t1, t2: arr.t2 };
+        });
+      }
+    });
+
+    state.busRawData = newRaw;
+    state.updatedAt = Date.now();
+    render();
+  } catch (err) {
+    console.warn('API 연동 실패, 시뮬레이션 데이터를 유지합니다:', err);
+  }
+}
+
+function computeDynamicOffsets(direction) {
+  const isIn = direction === 'inbound';
+  const gateId = isIn ? 'gate_in' : 'gate_out';
+  const stations = STATIONS[direction];
+  const raw = state.busRawData[direction];
+  const computedOffsets = { ...FALLBACK_OFFSETS[direction] };
+  const validRoutes = ['5100', '1112', '7000', '9'];
+
+  stations.forEach(st => {
+    if (st.id === gateId) return;
+    const samples = [];
+    validRoutes.forEach(rName => {
+      const gateData = raw[gateId]?.[rName];
+      const stopData = raw[st.id]?.[rName];
+      if (gateData?.t1 != null && stopData?.t1 != null) {
+        const diff = isIn ? stopData.t1 - gateData.t1 : gateData.t1 - stopData.t1;
+        if (diff >= 0) samples.push(diff);
+      }
+    });
+    if (samples.length > 0) {
+      computedOffsets[st.id] = Math.round((samples.reduce((a, b) => a + b, 0) / samples.length) * 10) / 10;
+    }
+  });
+
+  return computedOffsets;
+}
+
+function getProcessedStopArrivals(direction) {
+  const isIn = direction === 'inbound';
+  const gateId = isIn ? 'gate_in' : 'gate_out';
+  const stations = STATIONS[direction];
+  const raw = state.busRawData[direction];
+  const offsets = computeDynamicOffsets(direction);
+
+  return stations.map(st => {
+    const routeArrivals = TARGET_ROUTES.map(rt => {
+      const routeData = raw[st.id]?.[rt.name];
+
+      if (routeData) {
+        return {
+          route: rt.name,
+          type: rt.type,
+          desc: rt.desc,
+          t1: routeData.t1,
+          t2: routeData.t2,
+          isEstimated: false
+        };
+      }
+
+      const gateData = raw[gateId]?.[rt.name];
+      if (gateData && gateData.t1 != null) {
+        const offset = offsets[st.id] || 0;
+        let estT1 = isIn ? Math.max(1, Math.round(gateData.t1 + offset)) : Math.max(1, Math.round(gateData.t1 - offset));
+        let estT2 = gateData.t2 != null ? (isIn ? Math.max(estT1 + 4, Math.round(gateData.t2 + offset)) : Math.max(estT1 + 4, Math.round(gateData.t2 - offset))) : null;
+
+        return {
+          route: rt.name,
+          type: rt.type,
+          desc: rt.desc,
+          t1: estT1,
+          t2: estT2,
+          isEstimated: true
+        };
+      }
+
+      return { route: rt.name, type: rt.type, desc: rt.desc, t1: null, t2: null, isEstimated: false };
+    });
+
+    return { ...st, arrivals: routeArrivals };
+  });
+}
+
+const isDesktop = () => (state.layout === 'auto' ? window.innerWidth >= 900 : state.layout === 'desktop');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mins = (n) => (n <= 1 ? '<span class="soon">곧 도착</span>' : `${n}<small>분</small>`);
+const ago = () => Math.round((Date.now() - state.updatedAt) / 1000);
+
+const svg = (d, cls = '') => `<svg ${cls ? `class="${cls}"` : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  logo: svg('<path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5"/><path d="M8 8h2M14 8h2M8 12h2M14 12h2"/>'),
+  back: svg('<path d="m15 6-6 6 6 6"/>'),
+  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+  info: svg('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>')
+};
+
+function topBar(title) {
+  if (!title) {
+    return `<div class="top-row">
+      <div class="brand">${I.logo}Campus Pass</div>
+      <span class="spacer"></span>
+      <div class="lang">
+        <button type="button" aria-pressed="true">한국어</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="top-row">
+    <button type="button" class="home-btn" data-go="landing">${I.back}처음으로</button>
+    <h1 class="page-title">${title}</h1>
+    ${isDesktop() ? `<div class="brand" style="font-size:14px;opacity:.85">${I.logo}Campus Pass</div>` : ''}
+  </div>`;
+}
+
+function landingView() {
+  const processed = getProcessedStopArrivals('inbound');
+  const gateArrivals = processed[0].arrivals;
+  const quickest = gateArrivals.filter(a => a.t1 != null).sort((a, b) => a.t1 - b.t1)[0] || gateArrivals[0];
+
+  return `<header class="top">${topBar()}</header>
+    <div class="landing scroll">
+      <p class="landing-lead">경희대학교 국제캠퍼스 스마트 셔틀 & 버스 가이드</p>
+      <div class="choices">
+        <button type="button" class="choice choice-bus" data-go="bus">
+          <span>
+            <span class="choice-title" style="display:block">버스 실시간 도착</span>
+            <span class="choice-alt" style="display:block">Bus Realtime Arrival</span>
+          </span>
+          <span class="next">
+            <b>${quickest.t1 ? `${quickest.t1}분` : '운행종료'}</b>
+            <span>정문 기준 · ${esc(quickest.route)} (${esc(quickest.desc)})</span>
+          </span>
+          <span class="choice-desc">M5107, 1560번의 교내 정류장 이동시간 자동 보정 예측 지원</span>
+          <span class="choice-go">버스 도착 확인하기 ${I.arrow}</span>
+        </button>
+
+        <button type="button" class="choice choice-map" data-go="map">
+          <span>
+            <span class="choice-title" style="display:block">캠퍼스 건물/강의실 지도</span>
+            <span class="choice-alt" style="display:block">Campus Room Map</span>
+          </span>
+          <span class="choice-desc">강의실 코드로 건물, 층, 방 위치를 빠르게 조회합니다.</span>
+          <span class="choice-go">지도 조회하기 ${I.arrow}</span>
+        </button>
+      </div>
+      <p class="landing-foot">경희대학교 국제캠퍼스 맞춤형 목업 서비스</p>
+    </div>`;
+}
+
+function busView() {
+  const stopsData = getProcessedStopArrivals(state.direction);
+
+  const directionTabs = `<div class="direction-tabs" role="tablist">
+    <button type="button" role="tab" aria-selected="${state.direction === 'inbound'}" data-dir="inbound">
+      들어가는 방향 (사색의 광장 行)
+    </button>
+    <button type="button" role="tab" aria-selected="${state.direction === 'outbound'}" data-dir="outbound">
+      나가는 방향 (정문·시외 行)
+    </button>
+  </div>`;
+
+  const offsetNotice = `<div class="offset-info-box">
+    ${I.info}
+    <div>
+      <strong>M5107 및 1560번 버스 안내:</strong><br>
+      교내 정류장 API 데이터 미제공 노선은 타 버스(5100, 1112, 7000, 9번)의 정문 대비 실시간 구간 이동시간(외대 +2분, 생명대 +3.5분, 사색의광장 +5분)을 추정 보정하여 표시합니다.
+    </div>
+  </div>`;
+
+  const meta = `<div class="bus-meta">
+    <div class="bus-meta-l">
+      <span class="badge-sample">${state.dataMode === 'sim' ? '시뮬레이션 모드' : '실시간 API 모드'}</span>
+      <span id="ago">${ago()}초 전 업데이트</span>
+    </div>
+    <button type="button" class="refresh" data-refresh>${I.refresh}새로고침</button>
+  </div>`;
+
+  const stopsHtml = `<div class="stops">${stopsData.map(s => `
+    <section class="stop">
+      <div class="stop-header">
+        <h2>${esc(s.name.ko)}</h2>
+        <span class="stop-where">${esc(s.where.ko)}</span>
+      </div>
+      <table class="arrivals"><tbody>
+        ${s.arrivals.map(a => `<tr>
+          <td style="width:68px">
+            <span class="route route-${a.type}">${esc(a.route)}</span>
+          </td>
+          <td class="dest">
+            ${esc(a.desc)}
+            ${a.isEstimated ? '<br><span class="badge-est">[정문기준 추정]</span>' : ''}
+          </td>
+          <td class="t1 ${a.t1 == null ? 'ended' : a.t1 <= 1 ? 'soon' : ''}">
+            ${a.t1 == null ? '운행종료' : mins(a.t1)}
+            ${a.t2 != null ? `<span class="t2">다음 ${a.t2}분</span>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody></table>
+    </section>
+  `).join('')}</div>`;
+
+  if (!isDesktop()) {
+    return `<header class="top">${topBar('버스 정보')}</header>
+      <div class="main scroll">
+        ${directionTabs}
+        ${offsetNotice}
+        ${meta}
+        ${stopsHtml}
+      </div>`;
+  }
+
+  return `<header class="top">${topBar('버스 정보')}</header>
+    <div class="main" style="padding-bottom:0">
+      ${directionTabs}
+      <div class="bus-cols">
+        <div class="map-side scroll">
+          <h2>캠퍼스 노선 경로</h2>
+          ${offsetNotice}
+          <div class="map-wrap">
+            <svg viewBox="0 0 360 260">
+              <rect width="360" height="260" fill="#f8f9fa"/>
+              <path d="M 60 220 Q 140 170, 210 110 T 280 50" fill="none" stroke="#9b1b30" stroke-width="4" stroke-dasharray="6 4"/>
+              ${STATIONS[state.direction].map((st, i) => `
+                <circle cx="${st.pos.x}" cy="${st.pos.y}" r="8" fill="#9b1b30"/>
+                <circle cx="${st.pos.x}" cy="${st.pos.y}" r="4" fill="#fff"/>
+                <text x="${st.pos.x + 12}" y="${st.pos.y + 4}" font-size="12" font-weight="700" fill="#15171c">${i + 1}. ${esc(st.name.ko)}</text>
+              `).join('')}
+            </svg>
+          </div>
+        </div>
+        <div class="scroll">
+          ${meta}
+          ${stopsHtml}
+        </div>
+      </div>
+    </div>`;
+}
+
+function mapView() {
+  return `<header class="top">${topBar('캠퍼스 지도')}</header>
+    <div class="main scroll" style="padding: 16px;">
+      <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid var(--line); text-align:center;">
+        <h2 style="font-size:18px; margin-bottom:8px;">캠퍼스 건물 검색</h2>
+        <p style="font-size:13px; color:var(--ink-2);">전자정보대학관, 외국어대학, 생명과학대학, 멀티미디어관 등의 강의실 위치를 확인하세요.</p>
+        <div style="margin-top:16px; padding:12px; background:var(--ground); border-radius:8px; font-size:14px; font-weight:600;">
+          📍 예시: 전자정보대학관 201호
+        </div>
+      </div>
+    </div>`;
+}
+
+const $app = document.getElementById('app');
+const $stage = document.getElementById('stage');
+
+function render() {
+  const desk = isDesktop();
+  $stage.className = 'stage ' + (desk ? 'desktop' : 'phone');
+  $app.classList.toggle('desktop', desk);
+
+  document.querySelectorAll('[data-layout]').forEach(b => b.setAttribute('aria-pressed', b.dataset.layout === state.layout));
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === state.dataMode));
+
+  if (state.page === 'landing') $app.innerHTML = landingView();
+  else if (state.page === 'bus') $app.innerHTML = busView();
+  else if (state.page === 'map') $app.innerHTML = mapView();
+}
+
+setInterval(() => {
+  const el = document.getElementById('ago');
+  if (el) el.textContent = `${ago()}초 전 업데이트`;
+}, 1000);
+
+// 30초마다 API 데이터 자동으로 받아오기
+setInterval(() => {
+  if (state.dataMode === 'api') fetchRealApiData();
+}, 30000);
+
+window.addEventListener('resize', () => {
+  if (state.layout === 'auto') render();
+});
+
+document.querySelectorAll('[data-layout]').forEach(b => {
+  b.addEventListener('click', () => {
+    state.layout = b.dataset.layout;
+    render();
+  });
+});
+
+document.querySelectorAll('[data-mode]').forEach(b => {
+  b.addEventListener('click', () => {
+    state.dataMode = b.dataset.mode;
+    if (state.dataMode === 'sim') {
+      state.busRawData = generateSimulationData();
+      state.updatedAt = Date.now();
+      render();
+    } else {
+      fetchRealApiData();
+    }
+  });
+});
+
+$app.addEventListener('click', (e) => {
+  const goBtn = e.target.closest('[data-go]');
+  if (goBtn) {
+    state.page = goBtn.dataset.go;
+    render();
+    return;
+  }
+
+  const dirBtn = e.target.closest('[data-dir]');
+  if (dirBtn) {
+    state.direction = dirBtn.dataset.dir;
+    render();
+    return;
+  }
+
+  const refreshBtn = e.target.closest('[data-refresh]');
+  if (refreshBtn) {
+    if (state.dataMode === 'api') fetchRealApiData();
+    else {
+      state.busRawData = generateSimulationData();
+      state.updatedAt = Date.now();
+      render();
+    }
+    return;
+  }
+});
+
+// 처음 실행 시 API 불러오기
+fetchRealApiData();
+</script>
 </body>
 </html>
