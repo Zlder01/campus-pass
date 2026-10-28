@@ -3,23 +3,20 @@
 let mapData = [];
 let currentBuilding = null;
 let currentFloorObj = null;
+let activeTargetRoom = null; // 검색으로 하이라이트할 대상 호실
 
-// 1. map-data.json 불러오기 (경로 2중 방어 처리)
+// 1. map-data.json 로드
 async function loadMapData() {
   try {
     let res = await fetch('/data/map-data.json');
-    if (!res.ok) {
-      // /data/ 폴더에 없을 경우 루트 경로 시도
-      res = await fetch('/map-data.json');
-    }
-    
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    if (!res.ok) res = await fetch('/map-data.json');
+    if (!res.ok) throw new Error('Data fetch failed');
 
     mapData = await res.json();
     initBuildingSelect();
+    initSearchEvent();
   } catch (err) {
-    console.error('지도 데이터를 불러오는 중 오류 발생:', err);
-    alert('지도 데이터를 불러오지 못했습니다. map-data.json 경로를 확인해 주세요.');
+    console.error('데이터 로드 실패:', err);
   }
 }
 
@@ -32,10 +29,10 @@ function initBuildingSelect() {
     `<option value="${b.buildingId}">${b.buildingName}</option>`
   ).join('');
 
-  // 첫 번째 건물 자동 선택
   selectBuilding(mapData[0].buildingId);
 
   buildingSelect.addEventListener('change', (e) => {
+    activeTargetRoom = null; // 선택 직접 변경 시 핀 초기화
     selectBuilding(e.target.value);
   });
 }
@@ -45,7 +42,9 @@ function selectBuilding(buildingId) {
   currentBuilding = mapData.find(b => b.buildingId === buildingId);
   if (!currentBuilding) return;
 
-  // 1층을 우선 선택하고, 없으면 첫 번째 층을 기본 선택
+  const buildingSelect = document.getElementById('buildingSelect');
+  if (buildingSelect) buildingSelect.value = buildingId;
+
   if (currentBuilding.floors && currentBuilding.floors.length > 0) {
     const defaultFloor = currentBuilding.floors.find(f => f.floor === '1F');
     currentFloorObj = defaultFloor || currentBuilding.floors[0];
@@ -57,15 +56,10 @@ function selectBuilding(buildingId) {
   updateFloorPlanImage();
 }
 
-// 4. 층 버튼 목록 생성
+// 4. 층 버튼 렌더링
 function renderFloorButtons() {
   const floorContainer = document.getElementById('floorButtons');
   if (!floorContainer || !currentBuilding) return;
-
-  if (!currentBuilding.floors || currentBuilding.floors.length === 0) {
-    floorContainer.innerHTML = '<span style="font-size:12px; color:#868e96;">등록된 도면이 없습니다.</span>';
-    return;
-  }
 
   floorContainer.innerHTML = currentBuilding.floors.map(f => `
     <button 
@@ -85,9 +79,11 @@ function selectFloor(floorName) {
   updateFloorPlanImage();
 }
 
-// 6. 도면 이미지 업데이트
+// 6. 도면 및 하이라이트 핀 렌더링
 function updateFloorPlanImage() {
   const mapImageElem = document.getElementById('floorPlanImg');
+  const roomPinElem = document.getElementById('roomPin');
+  const pinLabelElem = document.getElementById('pinLabel');
   if (!mapImageElem) return;
 
   if (currentFloorObj && currentFloorObj.mapImage) {
@@ -95,14 +91,67 @@ function updateFloorPlanImage() {
     mapImageElem.alt = `${currentBuilding.buildingName} ${currentFloorObj.floor} 도면`;
     mapImageElem.style.display = 'block';
 
-    mapImageElem.onerror = function() {
-      console.error('이미지 로드 실패:', currentFloorObj.mapImage);
-      this.style.display = 'none';
-      alert(`도면 이미지를 불러올 수 없습니다.\n경로: ${currentFloorObj.mapImage}`);
-    };
+    // 해당 층에 하이라이트할 호실 정보가 있는 경우 핀 노출
+    if (activeTargetRoom && activeTargetRoom.floor === currentFloorObj.floor) {
+      if (roomPinElem && pinLabelElem) {
+        pinLabelElem.textContent = activeTargetRoom.name || `${activeTargetRoom.number}호`;
+        
+        // x, y 좌표 퍼센티지 적용 (좌표가 없으면 중앙에 핀)
+        const posX = activeTargetRoom.x !== undefined ? activeTargetRoom.x : 50;
+        const posY = activeTargetRoom.y !== undefined ? activeTargetRoom.y : 50;
+        
+        roomPinElem.style.left = `${posX}%`;
+        roomPinElem.style.top = `${posY}%`;
+        roomPinElem.classList.add('active');
+      }
+    } else {
+      if (roomPinElem) roomPinElem.classList.remove('active');
+    }
+
   } else {
     mapImageElem.style.display = 'none';
+    if (roomPinElem) roomPinElem.classList.remove('active');
   }
+}
+
+// 7. 실시간 강의실 검색 이벤트 처리
+function initSearchEvent() {
+  const searchInput = document.getElementById('roomSearchInput');
+  if (!searchInput) return;
+
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    if (!query) {
+      activeTargetRoom = null;
+      updateFloorPlanImage();
+      return;
+    }
+
+    // 21개 전 건물 및 각 층의 rooms 탐색
+    for (const b of mapData) {
+      const isBuildingMatch = b.buildingName.toLowerCase().includes(query) || 
+                              b.aliases.some(a => a.toLowerCase().includes(query));
+
+      for (const f of b.floors) {
+        if (!f.rooms) continue;
+        
+        const roomMatch = f.rooms.find(r => 
+          r.number.toLowerCase() === query ||
+          (r.name && r.name.toLowerCase().includes(query)) ||
+          (r.aliases && r.aliases.some(a => a.toLowerCase().includes(query)))
+        );
+
+        if (roomMatch) {
+          activeTargetRoom = { ...roomMatch, floor: f.floor };
+          if (currentBuilding.buildingId !== b.buildingId) {
+            selectBuilding(b.buildingId);
+          }
+          selectFloor(f.floor);
+          return;
+        }
+      }
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', loadMapData);
