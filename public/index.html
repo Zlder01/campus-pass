@@ -18,15 +18,8 @@
     --plate: #1d2027;
     --plate-ink: #ffffff;
     --plate-ink-2: #b9bec9;
-    --wall: #2b2f38;
-    --room: #ffffff;
-    --corridor: #e3e6eb;
     --amber-tint: #fdf0dc;
     --amber-ink: #6b3b00;
-    --blue-tint: #e3f2fd;
-    --blue-ink: #0d47a1;
-    --green-tint: #e8f5e9;
-    --green-ink: #1b5e20;
     --focus: #1d5fd1;
     --radius: 12px;
     --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -63,7 +56,6 @@
   .review-note { color: #9aa0ab; font-size: 12px; }
 
   .stage { flex: 1; min-height: 0; display: flex; }
-
   .stage.phone { align-items: safe center; justify-content: center; padding: 16px; overflow: auto; }
   .device {
     width: 390px; height: 844px; flex: none;
@@ -147,6 +139,7 @@
   .bus-meta-l { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .badge-sample { background: var(--amber-tint); color: var(--amber-ink); font-weight: 650; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
   .badge-est { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; font-weight: 650; border-radius: 4px; padding: 1px 5px; font-size: 10px; display: inline-block; }
+  .badge-schedule { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; font-weight: 650; border-radius: 4px; padding: 1px 5px; font-size: 10px; display: inline-block; }
 
   .refresh { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; min-height: 36px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
   .refresh:hover { border-color: var(--ink-2); }
@@ -222,12 +215,12 @@
 
 <script>
 const TARGET_ROUTES = [
-  { name: 'M5107', type: 'm', desc: '서울역 방면 (광역급행)' },
-  { name: '5100', type: 'red', desc: '강남역 방면 (직행좌석)' },
-  { name: '1112', type: 'red', desc: '강변역 방면 (직행좌석)' },
-  { name: '7000', type: 'red', desc: '사당역 방면 (직행좌석)' },
-  { name: '1560', type: 'red', desc: '신논현역 방면 (직행좌석)' },
-  { name: '9', type: 'green', desc: '수원역·용남고속 (일반)' }
+  { name: 'M5107', type: 'm', desc: '서울역 방면 (광역급행)', interval: 12, startHour: 5, startMin: 30, endHour: 23, endMin: 20 },
+  { name: '5100', type: 'red', desc: '강남역 방면 (직행좌석)', interval: 10, startHour: 5, startMin: 30, endHour: 23, endMin: 30 },
+  { name: '1112', type: 'red', desc: '강변역 방면 (직행좌석)', interval: 15, startHour: 5, startMin: 40, endHour: 23, endMin: 10 },
+  { name: '7000', type: 'red', desc: '사당역 방면 (직행좌석)', interval: 20, startHour: 5, startMin: 30, endHour: 23, endMin: 0 },
+  { name: '1560', type: 'red', desc: '신논현역 방면 (직행좌석)', interval: 20, startHour: 5, startMin: 45, endHour: 22, endMin: 50 },
+  { name: '9', type: 'green', desc: '수원역·용남고속 (일반)', interval: 15, startHour: 5, startMin: 30, endHour: 23, endMin: 0 }
 ];
 
 const STATIONS = {
@@ -250,417 +243,25 @@ const FALLBACK_OFFSETS = {
   outbound: { square_out: 5.0, life_out: 3.5, foreign_out: 2.0 }
 };
 
+// 기점(사색의 광장) 출발 시간표 기준 남아있는 분 계산
+function getTimetableDeparture(routeObj) {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = routeObj.startHour * 60 + routeObj.startMin;
+  const endMinutes = routeObj.endHour * 60 + routeObj.endMin;
+
+  if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
+    return null; // 운행시간 외 (운행종료)
+  }
+
+  const elapsed = currentMinutes - startMinutes;
+  const nextIn = routeObj.interval - (elapsed % routeObj.interval);
+  const nextT1 = nextIn === 0 ? routeObj.interval : nextIn;
+  const nextT2 = nextT1 + routeObj.interval;
+
+  return { t1: nextT1, t2: nextT2, isTimetable: true };
+}
+
 function generateSimulationData() {
   const baseGateIn = { 'M5107': [3, 14], '5100': [2, 11], '1112': [5, 18], '7000': [8, 22], '1560': [1, 15], '9': [4, 12] };
-  const baseGateOut = { 'M5107': [6, 17], '5100': [5, 14], '1112': [8, 21], '7000': [10, 25], '1560': [4, 18], '9': [7, 16] };
-  const data = { inbound: {}, outbound: {} };
-
-  STATIONS.inbound.forEach(st => {
-    data.inbound[st.id] = {};
-    TARGET_ROUTES.forEach(r => {
-      if ((r.name === 'M5107' || r.name === '1560') && st.id !== 'gate_in') {
-        data.inbound[st.id][r.name] = null;
-      } else {
-        const offset = st.id === 'gate_in' ? 0 : (FALLBACK_OFFSETS.inbound[st.id] || 0);
-        const times = baseGateIn[r.name].map(t => Math.max(1, Math.round(t + offset)));
-        data.inbound[st.id][r.name] = { t1: times[0], t2: times[1] };
-      }
-    });
-  });
-
-  STATIONS.outbound.forEach(st => {
-    data.outbound[st.id] = {};
-    TARGET_ROUTES.forEach(r => {
-      if ((r.name === 'M5107' || r.name === '1560') && st.id !== 'gate_out') {
-        data.outbound[st.id][r.name] = null;
-      } else {
-        const gateTime1 = baseGateOut[r.name][0];
-        const gateTime2 = baseGateOut[r.name][1];
-        const off = FALLBACK_OFFSETS.outbound[st.id] || 0;
-        const t1 = Math.max(1, Math.round(gateTime1 - off));
-        const t2 = Math.max(t1 + 3, Math.round(gateTime2 - off));
-        data.outbound[st.id][r.name] = { t1, t2 };
-      }
-    });
-  });
-
-  return data;
-}
-
-const state = {
-  lang: 'ko',
-  layout: 'auto',
-  page: 'landing',
-  direction: 'inbound',
-  dataMode: 'api', // 기본값을 실시간 API 모드로 설정
-  query: '',
-  updatedAt: Date.now(),
-  busRawData: generateSimulationData()
-};
-
-// Vercel 실시간 API 데이터 가져오기 연동
-async function fetchRealApiData() {
-  try {
-    const res = await fetch('/api/bus', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const apiRes = await res.json();
-
-    const newRaw = { inbound: {}, outbound: {} };
-    STATIONS.inbound.forEach(st => newRaw.inbound[st.id] = {});
-    STATIONS.outbound.forEach(st => newRaw.outbound[st.id] = {});
-
-    const mapStopId = (vId, dir) => {
-      if (dir === 'in') {
-        if (vId === 'main-gate') return 'gate_in';
-        if (vId === 'foreign') return 'foreign_in';
-        if (vId === 'lifesci') return 'life_in';
-        if (vId === 'square') return 'square_in';
-      } else {
-        if (vId === 'square') return 'square_out';
-        if (vId === 'lifesci-ind') return 'life_out';
-        if (vId === 'pe-foreign') return 'foreign_out';
-        if (vId === 'main-gate') return 'gate_out';
-      }
-      return null;
-    };
-
-    apiRes.stops.forEach(stop => {
-      const targetId = mapStopId(stop.id, stop.dir);
-      const targetDict = stop.dir === 'in' ? newRaw.inbound : newRaw.outbound;
-      if (targetId && targetDict[targetId]) {
-        stop.arrivals.forEach(arr => {
-          targetDict[targetId][arr.route] = { t1: arr.t1, t2: arr.t2 };
-        });
-      }
-    });
-
-    state.busRawData = newRaw;
-    state.updatedAt = Date.now();
-    render();
-  } catch (err) {
-    console.warn('API 연동 실패, 시뮬레이션 데이터를 유지합니다:', err);
-  }
-}
-
-function computeDynamicOffsets(direction) {
-  const isIn = direction === 'inbound';
-  const gateId = isIn ? 'gate_in' : 'gate_out';
-  const stations = STATIONS[direction];
-  const raw = state.busRawData[direction];
-  const computedOffsets = { ...FALLBACK_OFFSETS[direction] };
-  const validRoutes = ['5100', '1112', '7000', '9'];
-
-  stations.forEach(st => {
-    if (st.id === gateId) return;
-    const samples = [];
-    validRoutes.forEach(rName => {
-      const gateData = raw[gateId]?.[rName];
-      const stopData = raw[st.id]?.[rName];
-      if (gateData?.t1 != null && stopData?.t1 != null) {
-        const diff = isIn ? stopData.t1 - gateData.t1 : gateData.t1 - stopData.t1;
-        if (diff >= 0) samples.push(diff);
-      }
-    });
-    if (samples.length > 0) {
-      computedOffsets[st.id] = Math.round((samples.reduce((a, b) => a + b, 0) / samples.length) * 10) / 10;
-    }
-  });
-
-  return computedOffsets;
-}
-
-function getProcessedStopArrivals(direction) {
-  const isIn = direction === 'inbound';
-  const gateId = isIn ? 'gate_in' : 'gate_out';
-  const stations = STATIONS[direction];
-  const raw = state.busRawData[direction];
-  const offsets = computeDynamicOffsets(direction);
-
-  return stations.map(st => {
-    const routeArrivals = TARGET_ROUTES.map(rt => {
-      const routeData = raw[st.id]?.[rt.name];
-
-      if (routeData) {
-        return {
-          route: rt.name,
-          type: rt.type,
-          desc: rt.desc,
-          t1: routeData.t1,
-          t2: routeData.t2,
-          isEstimated: false
-        };
-      }
-
-      const gateData = raw[gateId]?.[rt.name];
-      if (gateData && gateData.t1 != null) {
-        const offset = offsets[st.id] || 0;
-        let estT1 = isIn ? Math.max(1, Math.round(gateData.t1 + offset)) : Math.max(1, Math.round(gateData.t1 - offset));
-        let estT2 = gateData.t2 != null ? (isIn ? Math.max(estT1 + 4, Math.round(gateData.t2 + offset)) : Math.max(estT1 + 4, Math.round(gateData.t2 - offset))) : null;
-
-        return {
-          route: rt.name,
-          type: rt.type,
-          desc: rt.desc,
-          t1: estT1,
-          t2: estT2,
-          isEstimated: true
-        };
-      }
-
-      return { route: rt.name, type: rt.type, desc: rt.desc, t1: null, t2: null, isEstimated: false };
-    });
-
-    return { ...st, arrivals: routeArrivals };
-  });
-}
-
-const isDesktop = () => (state.layout === 'auto' ? window.innerWidth >= 900 : state.layout === 'desktop');
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const mins = (n) => (n <= 1 ? '<span class="soon">곧 도착</span>' : `${n}<small>분</small>`);
-const ago = () => Math.round((Date.now() - state.updatedAt) / 1000);
-
-const svg = (d, cls = '') => `<svg ${cls ? `class="${cls}"` : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const I = {
-  logo: svg('<path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5"/><path d="M8 8h2M14 8h2M8 12h2M14 12h2"/>'),
-  back: svg('<path d="m15 6-6 6 6 6"/>'),
-  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
-  refresh: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
-  info: svg('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>')
-};
-
-function topBar(title) {
-  if (!title) {
-    return `<div class="top-row">
-      <div class="brand">${I.logo}Campus Pass</div>
-      <span class="spacer"></span>
-      <div class="lang">
-        <button type="button" aria-pressed="true">한국어</button>
-      </div>
-    </div>`;
-  }
-  return `<div class="top-row">
-    <button type="button" class="home-btn" data-go="landing">${I.back}처음으로</button>
-    <h1 class="page-title">${title}</h1>
-    ${isDesktop() ? `<div class="brand" style="font-size:14px;opacity:.85">${I.logo}Campus Pass</div>` : ''}
-  </div>`;
-}
-
-function landingView() {
-  const processed = getProcessedStopArrivals('inbound');
-  const gateArrivals = processed[0].arrivals;
-  const quickest = gateArrivals.filter(a => a.t1 != null).sort((a, b) => a.t1 - b.t1)[0] || gateArrivals[0];
-
-  return `<header class="top">${topBar()}</header>
-    <div class="landing scroll">
-      <p class="landing-lead">경희대학교 국제캠퍼스 스마트 셔틀 & 버스 가이드</p>
-      <div class="choices">
-        <button type="button" class="choice choice-bus" data-go="bus">
-          <span>
-            <span class="choice-title" style="display:block">버스 실시간 도착</span>
-            <span class="choice-alt" style="display:block">Bus Realtime Arrival</span>
-          </span>
-          <span class="next">
-            <b>${quickest.t1 ? `${quickest.t1}분` : '운행종료'}</b>
-            <span>정문 기준 · ${esc(quickest.route)} (${esc(quickest.desc)})</span>
-          </span>
-          <span class="choice-desc">M5107, 1560번의 교내 정류장 이동시간 자동 보정 예측 지원</span>
-          <span class="choice-go">버스 도착 확인하기 ${I.arrow}</span>
-        </button>
-
-        <button type="button" class="choice choice-map" data-go="map">
-          <span>
-            <span class="choice-title" style="display:block">캠퍼스 건물/강의실 지도</span>
-            <span class="choice-alt" style="display:block">Campus Room Map</span>
-          </span>
-          <span class="choice-desc">강의실 코드로 건물, 층, 방 위치를 빠르게 조회합니다.</span>
-          <span class="choice-go">지도 조회하기 ${I.arrow}</span>
-        </button>
-      </div>
-      <p class="landing-foot">경희대학교 국제캠퍼스 맞춤형 목업 서비스</p>
-    </div>`;
-}
-
-function busView() {
-  const stopsData = getProcessedStopArrivals(state.direction);
-
-  const directionTabs = `<div class="direction-tabs" role="tablist">
-    <button type="button" role="tab" aria-selected="${state.direction === 'inbound'}" data-dir="inbound">
-      들어가는 방향 (사색의 광장 行)
-    </button>
-    <button type="button" role="tab" aria-selected="${state.direction === 'outbound'}" data-dir="outbound">
-      나가는 방향 (정문·시외 行)
-    </button>
-  </div>`;
-
-  const offsetNotice = `<div class="offset-info-box">
-    ${I.info}
-    <div>
-      <strong>M5107 및 1560번 버스 안내:</strong><br>
-      교내 정류장 API 데이터 미제공 노선은 타 버스(5100, 1112, 7000, 9번)의 정문 대비 실시간 구간 이동시간(외대 +2분, 생명대 +3.5분, 사색의광장 +5분)을 추정 보정하여 표시합니다.
-    </div>
-  </div>`;
-
-  const meta = `<div class="bus-meta">
-    <div class="bus-meta-l">
-      <span class="badge-sample">${state.dataMode === 'sim' ? '시뮬레이션 모드' : '실시간 API 모드'}</span>
-      <span id="ago">${ago()}초 전 업데이트</span>
-    </div>
-    <button type="button" class="refresh" data-refresh>${I.refresh}새로고침</button>
-  </div>`;
-
-  const stopsHtml = `<div class="stops">${stopsData.map(s => `
-    <section class="stop">
-      <div class="stop-header">
-        <h2>${esc(s.name.ko)}</h2>
-        <span class="stop-where">${esc(s.where.ko)}</span>
-      </div>
-      <table class="arrivals"><tbody>
-        ${s.arrivals.map(a => `<tr>
-          <td style="width:68px">
-            <span class="route route-${a.type}">${esc(a.route)}</span>
-          </td>
-          <td class="dest">
-            ${esc(a.desc)}
-            ${a.isEstimated ? '<br><span class="badge-est">[정문기준 추정]</span>' : ''}
-          </td>
-          <td class="t1 ${a.t1 == null ? 'ended' : a.t1 <= 1 ? 'soon' : ''}">
-            ${a.t1 == null ? '운행종료' : mins(a.t1)}
-            ${a.t2 != null ? `<span class="t2">다음 ${a.t2}분</span>` : ''}
-          </td>
-        </tr>`).join('')}
-      </tbody></table>
-    </section>
-  `).join('')}</div>`;
-
-  if (!isDesktop()) {
-    return `<header class="top">${topBar('버스 정보')}</header>
-      <div class="main scroll">
-        ${directionTabs}
-        ${offsetNotice}
-        ${meta}
-        ${stopsHtml}
-      </div>`;
-  }
-
-  return `<header class="top">${topBar('버스 정보')}</header>
-    <div class="main" style="padding-bottom:0">
-      ${directionTabs}
-      <div class="bus-cols">
-        <div class="map-side scroll">
-          <h2>캠퍼스 노선 경로</h2>
-          ${offsetNotice}
-          <div class="map-wrap">
-            <svg viewBox="0 0 360 260">
-              <rect width="360" height="260" fill="#f8f9fa"/>
-              <path d="M 60 220 Q 140 170, 210 110 T 280 50" fill="none" stroke="#9b1b30" stroke-width="4" stroke-dasharray="6 4"/>
-              ${STATIONS[state.direction].map((st, i) => `
-                <circle cx="${st.pos.x}" cy="${st.pos.y}" r="8" fill="#9b1b30"/>
-                <circle cx="${st.pos.x}" cy="${st.pos.y}" r="4" fill="#fff"/>
-                <text x="${st.pos.x + 12}" y="${st.pos.y + 4}" font-size="12" font-weight="700" fill="#15171c">${i + 1}. ${esc(st.name.ko)}</text>
-              `).join('')}
-            </svg>
-          </div>
-        </div>
-        <div class="scroll">
-          ${meta}
-          ${stopsHtml}
-        </div>
-      </div>
-    </div>`;
-}
-
-function mapView() {
-  return `<header class="top">${topBar('캠퍼스 지도')}</header>
-    <div class="main scroll" style="padding: 16px;">
-      <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid var(--line); text-align:center;">
-        <h2 style="font-size:18px; margin-bottom:8px;">캠퍼스 건물 검색</h2>
-        <p style="font-size:13px; color:var(--ink-2);">전자정보대학관, 외국어대학, 생명과학대학, 멀티미디어관 등의 강의실 위치를 확인하세요.</p>
-        <div style="margin-top:16px; padding:12px; background:var(--ground); border-radius:8px; font-size:14px; font-weight:600;">
-          📍 예시: 전자정보대학관 201호
-        </div>
-      </div>
-    </div>`;
-}
-
-const $app = document.getElementById('app');
-const $stage = document.getElementById('stage');
-
-function render() {
-  const desk = isDesktop();
-  $stage.className = 'stage ' + (desk ? 'desktop' : 'phone');
-  $app.classList.toggle('desktop', desk);
-
-  document.querySelectorAll('[data-layout]').forEach(b => b.setAttribute('aria-pressed', b.dataset.layout === state.layout));
-  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === state.dataMode));
-
-  if (state.page === 'landing') $app.innerHTML = landingView();
-  else if (state.page === 'bus') $app.innerHTML = busView();
-  else if (state.page === 'map') $app.innerHTML = mapView();
-}
-
-setInterval(() => {
-  const el = document.getElementById('ago');
-  if (el) el.textContent = `${ago()}초 전 업데이트`;
-}, 1000);
-
-// 30초마다 API 데이터 자동으로 받아오기
-setInterval(() => {
-  if (state.dataMode === 'api') fetchRealApiData();
-}, 30000);
-
-window.addEventListener('resize', () => {
-  if (state.layout === 'auto') render();
-});
-
-document.querySelectorAll('[data-layout]').forEach(b => {
-  b.addEventListener('click', () => {
-    state.layout = b.dataset.layout;
-    render();
-  });
-});
-
-document.querySelectorAll('[data-mode]').forEach(b => {
-  b.addEventListener('click', () => {
-    state.dataMode = b.dataset.mode;
-    if (state.dataMode === 'sim') {
-      state.busRawData = generateSimulationData();
-      state.updatedAt = Date.now();
-      render();
-    } else {
-      fetchRealApiData();
-    }
-  });
-});
-
-$app.addEventListener('click', (e) => {
-  const goBtn = e.target.closest('[data-go]');
-  if (goBtn) {
-    state.page = goBtn.dataset.go;
-    render();
-    return;
-  }
-
-  const dirBtn = e.target.closest('[data-dir]');
-  if (dirBtn) {
-    state.direction = dirBtn.dataset.dir;
-    render();
-    return;
-  }
-
-  const refreshBtn = e.target.closest('[data-refresh]');
-  if (refreshBtn) {
-    if (state.dataMode === 'api') fetchRealApiData();
-    else {
-      state.busRawData = generateSimulationData();
-      state.updatedAt = Date.now();
-      render();
-    }
-    return;
-  }
-});
-
-// 처음 실행 시 API 불러오기
-fetchRealApiData();
-</script>
-</body>
-</html>
+  const baseGateOut = { 'M5107': [6, 17], '5100': [5, 14], '1112': [8, 21], '7000': [10, 25], '1560':
