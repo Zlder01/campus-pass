@@ -214,13 +214,68 @@
 </div>
 
 <script>
+// 네이버/GBIS 실시간 운행 데이터 기반 시간대별 가변 배차 간격 설정
 const TARGET_ROUTES = [
-  { name: 'M5107', type: 'm', desc: '서울역 방면 (광역급행)', interval: 12, startHour: 5, startMin: 30, endHour: 23, endMin: 20 },
-  { name: '5100', type: 'red', desc: '강남역 방면 (직행좌석)', interval: 10, startHour: 5, startMin: 30, endHour: 23, endMin: 30 },
-  { name: '1112', type: 'red', desc: '강변역 방면 (직행좌석)', interval: 15, startHour: 5, startMin: 40, endHour: 23, endMin: 10 },
-  { name: '7000', type: 'red', desc: '사당역 방면 (직행좌석)', interval: 20, startHour: 5, startMin: 30, endHour: 23, endMin: 0 },
-  { name: '1560', type: 'red', desc: '신논현역 방면 (직행좌석)', interval: 20, startHour: 5, startMin: 45, endHour: 22, endMin: 50 },
-  { name: '9', type: 'green', desc: '수원역·용남고속 (일반)', interval: 15, startHour: 5, startMin: 30, endHour: 23, endMin: 0 }
+  { 
+    name: 'M5107', type: 'm', desc: '서울역 방면 (광역급행)',
+    startHour: 5, startMin: 0, endHour: 23, endMin: 0,
+    intervals: [
+      { start: 5,  end: 9,  interval: 6 },  // 출근 6분
+      { start: 9,  end: 17, interval: 11 }, // 낮 11분
+      { start: 17, end: 20, interval: 7 },  // 퇴근 7분
+      { start: 20, end: 24, interval: 12 }  // 야간 12분
+    ]
+  },
+  { 
+    name: '5100', type: 'red', desc: '강남역 방면 (직행좌석)',
+    startHour: 5, startMin: 30, endHour: 0, endMin: 10,
+    intervals: [
+      { start: 5,  end: 9,  interval: 7 },
+      { start: 9,  end: 17, interval: 11 },
+      { start: 17, end: 20, interval: 8 },
+      { start: 20, end: 25, interval: 15 }
+    ]
+  },
+  { 
+    name: '1112', type: 'red', desc: '강변역 방면 (직행좌석)',
+    startHour: 4, startMin: 40, endHour: 22, endMin: 30,
+    intervals: [
+      { start: 4,  end: 9,  interval: 12 },
+      { start: 9,  end: 17, interval: 18 },
+      { start: 17, end: 20, interval: 15 },
+      { start: 20, end: 23, interval: 20 }
+    ]
+  },
+  { 
+    name: '7000', type: 'red', desc: '사당역 방면 (직행좌석)',
+    startHour: 5, startMin: 30, endHour: 0, endMin: 0,
+    intervals: [
+      { start: 5,  end: 9,  interval: 12 },
+      { start: 9,  end: 17, interval: 18 },
+      { start: 17, end: 20, interval: 14 },
+      { start: 20, end: 24, interval: 20 }
+    ]
+  },
+  { 
+    name: '1560', type: 'red', desc: '신논현역 방면 (직행좌석)',
+    startHour: 5, startMin: 0, endHour: 23, endMin: 30,
+    intervals: [
+      { start: 5,  end: 9,  interval: 10 },
+      { start: 9,  end: 17, interval: 18 },
+      { start: 17, end: 20, interval: 12 },
+      { start: 20, end: 24, interval: 20 }
+    ]
+  },
+  { 
+    name: '9', type: 'green', desc: '수원역·용남고속 (일반)',
+    startHour: 5, startMin: 30, endHour: 23, endMin: 0,
+    intervals: [
+      { start: 5,  end: 9,  interval: 12 },
+      { start: 9,  end: 17, interval: 16 },
+      { start: 17, end: 20, interval: 14 },
+      { start: 20, end: 23, interval: 20 }
+    ]
+  }
 ];
 
 const STATIONS = {
@@ -238,9 +293,11 @@ const STATIONS = {
   ]
 };
 
+// 현재 시각의 출퇴근/일반 시간대별 배차 간격을 추출하여 시간표 계산
 function getTimetableDeparture(routeObj) {
   const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentHour = now.getHours();
+  const currentMinutes = currentHour * 60 + now.getMinutes();
   const startMinutes = routeObj.startHour * 60 + routeObj.startMin;
   const endMinutes = routeObj.endHour * 60 + routeObj.endMin;
 
@@ -248,10 +305,13 @@ function getTimetableDeparture(routeObj) {
     return null;
   }
 
+  const matched = routeObj.intervals?.find(i => currentHour >= i.start && currentHour < i.end);
+  const activeInterval = matched ? matched.interval : 15;
+
   const elapsed = currentMinutes - startMinutes;
-  const nextIn = routeObj.interval - (elapsed % routeObj.interval);
-  const nextT1 = nextIn === 0 ? routeObj.interval : nextIn;
-  const nextT2 = nextT1 + routeObj.interval;
+  const nextIn = activeInterval - (elapsed % activeInterval);
+  const nextT1 = nextIn === 0 ? activeInterval : nextIn;
+  const nextT2 = nextT1 + activeInterval;
 
   return { t1: nextT1, t2: nextT2, isTimetable: true };
 }
@@ -373,7 +433,6 @@ function getProcessedStopArrivals(direction) {
       const stopIdx = result.findIndex(s => s.id === st.id);
       const candidates = [];
 
-      // A. 해당 정류장의 개별 실시간 API 데이터
       const directData = raw[st.id]?.[rt.name];
       if (directData && directData.t1 != null) {
         candidates.push({
@@ -384,7 +443,6 @@ function getProcessedStopArrivals(direction) {
         });
       }
 
-      // B. 기점(사색의 광장/정문) 출발 버스의 이동시간 전파 데이터
       if (originT1 != null) {
         const diff = (offsets[st.id] || 0) - (offsets[originStopId] || 0);
         const estT1 = Math.max(1, Math.round(originT1 + diff));
@@ -398,7 +456,6 @@ function getProcessedStopArrivals(direction) {
         });
       }
 
-      // C. 타 정류장에서 잡힌 버스의 이동시간 전파 데이터
       stations.forEach((otherSt) => {
         if (otherSt.id === st.id) return;
         const otherData = raw[otherSt.id]?.[rt.name];
@@ -427,11 +484,9 @@ function getProcessedStopArrivals(direction) {
           isTimetable: false
         });
       } else {
-        // 도착시간 오름차순 정렬 (가장 빨리 도착하는 버스를 1순위로 채택)
         candidates.sort((a, b) => a.t1 - b.t1);
         const best = candidates[0];
 
-        // 2순위(다음 t2) 계산: 1순위보다 늦게 도착하는 첫 번째 후보
         let finalT2 = best.t2;
         for (let k = 1; k < candidates.length; k++) {
           if (candidates[k].t1 > best.t1) {
@@ -507,7 +562,7 @@ function landingView() {
             <b>${quickest.t1 ? `${quickest.t1}분` : '운행종료'}</b>
             <span>정문 기준 · ${esc(quickest.route)} (${esc(quickest.desc)})</span>
           </span>
-          <span class="choice-desc">교내 노선 구간 이동시간 및 기점 출발 시간표 자동 연동 지원</span>
+          <span class="choice-desc">교내 노선 구간 이동시간 및 출퇴근 시간대별 시간표 자동 연동 지원</span>
           <span class="choice-go">버스 도착 확인하기 ${I.arrow}</span>
         </button>
 
@@ -541,7 +596,7 @@ function busView() {
     <div>
       <strong>보정 및 시간표 계산 안내:</strong><br>
       · 교내 API 미제공 노선은 주요 기준점(기점 및 정문)의 데이터를 기반으로 이동 시간을 자동 가산합니다.<br>
-      · 대기 중이거나 API 미인식 시 노선 정시 시간표 및 배차간격을 자동 적용합니다.
+      · 대기 중이거나 API 미인식 시 출퇴근/일반 시간대별 정시 시간표를 자동 적용합니다.
     </div>
   </div>`;
 
