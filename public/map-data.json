@@ -1,134 +1,250 @@
 [
   {
-    "buildingId": "eng_main",
-    "buildingName": "공학관",
-    "aliases": ["공학관", "공대", "공학"],
+    "buildingId": "art_design",
+    "buildingName": "예술디자인대학관",
+    "aliases": ["예술디자인대학관", "예디대", "예디관"],
     "floors": [
-      {
-        "floor": "1F",
-        "mapImage": "/maps/eng_main_1f.png",
-        "rooms": []
-      }
+      { "floor": "B1F", "mapImage": "/maps/art_design_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/art_design_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/art_design_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/art_design_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/art_design_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/art_design_5f.png" },
+      { "floor": "6F", "mapImage": "/maps/art_design_6f.png" },
+      { "floor": "7F", "mapImage": "/maps/art_design_7f.png" }
+    ]
+  },
+  {
+    "buildingId": "central_lib",
+    "buildingName": "중앙도서관",
+    "aliases": ["중앙도서관", "중도"],
+    "floors": [
+      { "floor": "B2F", "mapImage": "/maps/central_lib_b2f.png" },
+      { "floor": "B1F", "mapImage": "/maps/central_lib_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/central_lib_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/central_lib_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/central_lib_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/central_lib_4f.png" }
+    ]
+  },
+  {
+    "buildingId": "ceramic",
+    "buildingName": "도예관",
+    "aliases": ["도예관"],
+    "floors": [
+      { "floor": "B1", "mapImage": "/maps/ceramic_b1.png" },
+      { "floor": "1F", "mapImage": "/maps/ceramic_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/ceramic_2f.png" }
+    ]
+  },
+  {
+    "buildingId": "eecs",
+    "buildingName": "전자정보대학",
+    "aliases": ["전자정보대학", "전디대", "전정보"],
+    "floors": [
+      { "floor": "B1F", "mapImage": "/maps/eecs_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/eecs_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/eecs_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/eecs_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/eecs_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/eecs_5f.png" },
+      { "floor": "6F", "mapImage": "/maps/eecs_6f.png" },
+      { "floor": "7F", "mapImage": "/maps/eecs_7f.png" }
     ]
   },
   {
     "buildingId": "eng_exp",
     "buildingName": "공학실험동",
     "aliases": ["공학실험동", "공실동"],
-    "floors": []
+    "floors": [
+      { "floor": "B1", "mapImage": "/maps/eng_exp_b1.png" },
+      { "floor": "1F", "mapImage": "/maps/eng_exp_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/eng_exp_2f.png" }
+    ]
   },
   {
-    "buildingId": "int_biz",
-    "buildingName": "국제경영대학관",
-    "aliases": ["국제경영대학관", "국경대", "국경관"],
-    "floors": []
-  },
-  {
-    "buildingId": "int_hall",
-    "buildingName": "국제학관",
-    "aliases": ["국제학관", "국학관"],
-    "floors": []
-  },
-  {
-    "buildingId": "global",
-    "buildingName": "글로벌관",
-    "aliases": ["글로벌관", "글관"],
-    "floors": []
-  },
-  {
-    "buildingId": "ceramic",
-    "buildingName": "도예관",
-    "aliases": ["도예관"],
-    "floors": []
-  },
-  {
-    "buildingId": "multimedia",
-    "buildingName": "멀티미디어관",
-    "aliases": ["멀티미디어관", "멀관"],
-    "floors": []
-  },
-  {
-    "buildingId": "life_sci",
-    "buildingName": "생명과학대학관",
-    "aliases": ["생명과학대학관", "생대", "생명대관"],
-    "floors": []
-  },
-  {
-    "buildingId": "seonseung",
-    "buildingName": "선승관",
-    "aliases": ["선승관", "체육관"],
-    "floors": []
+    "buildingId": "eng_main",
+    "buildingName": "공학관",
+    "aliases": ["공학관", "공대", "공학"],
+    "floors": [
+      { "floor": "B2", "mapImage": "/maps/eng_main_b2.png" },
+      { "floor": "B1", "mapImage": "/maps/eng_main_b1.png" },
+      { "floor": "1F", "mapImage": "/maps/eng_main_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/eng_main_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/eng_main_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/eng_main_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/eng_main_5f.png" }
+    ]
   },
   {
     "buildingId": "exp_research",
     "buildingName": "실험연구동",
     "aliases": ["실험연구동", "실연구동"],
-    "floors": []
-  },
-  {
-    "buildingId": "art_design",
-    "buildingName": "예술디자인대학관",
-    "aliases": ["예술디자인대학관", "예디대", "예디관", "예"],
-    "floors": []
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/exp_research_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/exp_research_2f.png" }
+    ]
   },
   {
     "buildingId": "foreign_lang",
     "buildingName": "외국어대학관",
     "aliases": ["외국어대학관", "외대", "외대관"],
-    "floors": []
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/foreign_lang_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/foreign_lang_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/foreign_lang_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/foreign_lang_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/foreign_lang_5f.png" }
+    ]
   },
   {
-    "buildingId": "ujeong",
-    "buildingName": "우정원",
-    "aliases": ["우정원", "기숙사"],
-    "floors": []
+    "buildingId": "global",
+    "buildingName": "글로벌관",
+    "aliases": ["글로벌관", "글관"],
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/global_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/global_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/global_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/global_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/global_5f.png" }
+    ]
   },
   {
     "buildingId": "horticulture_greenhouse",
     "buildingName": "원예생명과학온실",
     "aliases": ["원예생명과학온실", "온실"],
-    "floors": []
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/horticulture_greenhouse_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/horticulture_greenhouse_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/horticulture_greenhouse_3f.png" }
+    ]
+  },
+  {
+    "buildingId": "int_biz",
+    "buildingName": "국제경영대학관",
+    "aliases": ["국제경영대학관", "국경대", "국경관"],
+    "floors": [
+      { "floor": "B1", "mapImage": "/maps/int_biz_b1.png" },
+      { "floor": "1F", "mapImage": "/maps/int_biz_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/int_biz_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/int_biz_3f.png" }
+    ]
+  },
+  {
+    "buildingId": "int_hall",
+    "buildingName": "국제학관",
+    "aliases": ["국제학관", "국학관"],
+    "floors": [
+      { "floor": "B1", "mapImage": "/maps/int_hall_b1.png" },
+      { "floor": "1F", "mapImage": "/maps/int_hall_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/int_hall_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/int_hall_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/int_hall_4f.png" }
+    ]
+  },
+  {
+    "buildingId": "life_sci",
+    "buildingName": "생명과학대학관",
+    "aliases": ["생명과학대학관", "생대"],
+    "floors": [
+      { "floor": "B1F", "mapImage": "/maps/life_sci_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/life_sci_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/life_sci_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/life_sci_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/life_sci_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/life_sci_5f.png" }
+    ]
+  },
+  {
+    "buildingId": "multimedia",
+    "buildingName": "멀티미디어관",
+    "aliases": ["멀티미디어관", "멀관"],
+    "floors": [
+      { "floor": "B2", "mapImage": "/maps/multimedia_b2.jpg" },
+      { "floor": "B1", "mapImage": "/maps/multimedia_b1.jpg" },
+      { "floor": "1F", "mapImage": "/maps/multimedia_1f.jpg" },
+      { "floor": "2F", "mapImage": "/maps/multimedia_2f.jpg" },
+      { "floor": "3F", "mapImage": "/maps/multimedia_3f.jpg" },
+      { "floor": "4F", "mapImage": "/maps/multimedia_4f.jpg" },
+      { "floor": "5F", "mapImage": "/maps/multimedia_5f.jpg" },
+      { "floor": "6F", "mapImage": "/maps/multimedia_6f.jpg" },
+      { "floor": "7F", "mapImage": "/maps/multimedia_7f.jpg" },
+      { "floor": "8F", "mapImage": "/maps/multimedia_8f.jpg" },
+      { "floor": "9F", "mapImage": "/maps/multimedia_9f.jpg" }
+    ]
   },
   {
     "buildingId": "nuclear_lab",
     "buildingName": "원자력실험실",
     "aliases": ["원자력실험실", "원자력실험동"],
-    "floors": []
-  },
-  {
-    "buildingId": "eecs",
-    "buildingName": "전자정보대학",
-    "aliases": ["전자정보대학", "전디대", "전정보", "전디관"],
-    "floors": []
-  },
-  {
-    "buildingId": "central_lib",
-    "buildingName": "중앙도서관",
-    "aliases": ["중앙도서관", "중도"],
-    "floors": []
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/nuclear_lab_1f.png" }
+    ]
   },
   {
     "buildingId": "observatory",
     "buildingName": "천문대",
     "aliases": ["천문대"],
-    "floors": []
+    "floors": [
+      { "floor": "B1F", "mapImage": "/maps/observatory_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/observatory_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/observatory_2f.png" }
+    ]
+  },
+  {
+    "buildingId": "oriental_medicine_factory",
+    "buildingName": "한방재료가공기업",
+    "aliases": ["한방재료가공기업"],
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/oriental_medicine_factory_1f.png" }
+    ]
   },
   {
     "buildingId": "pe_college",
     "buildingName": "체육대학관",
     "aliases": ["체육대학관", "체대관"],
-    "floors": []
+    "floors": [
+      { "floor": "B1F", "mapImage": "/maps/pe_college_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/pe_college_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/pe_college_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/pe_college_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/pe_college_4f.png" }
+    ]
+  },
+  {
+    "buildingId": "seonseung",
+    "buildingName": "선승관",
+    "aliases": ["선승관", "체육관"],
+    "floors": [
+      { "floor": "B1F", "mapImage": "/maps/seonseung_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/seonseung_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/seonseung_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/seonseung_3f.png" }
+    ]
   },
   {
     "buildingId": "student_hall",
     "buildingName": "학생회관",
     "aliases": ["학생회관", "학관"],
-    "floors": []
+    "floors": [
+      { "floor": "1F", "mapImage": "/maps/student_hall_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/student_hall_2f.png" },
+      { "floor": "3F", "mapImage": "/maps/student_hall_3f.png" },
+      { "floor": "4F", "mapImage": "/maps/student_hall_4f.png" },
+      { "floor": "5F", "mapImage": "/maps/student_hall_5f.png" },
+      { "floor": "6F", "mapImage": "/maps/student_hall_6f.png" },
+      { "floor": "7F", "mapImage": "/maps/student_hall_7f.png" }
+    ]
   },
   {
-    "buildingId": "oriental_medicine_factory",
-    "buildingName": "한방재료가공기업",
-    "aliases": ["한방재료가공기업", "한방재료"],
-    "floors": []
+    "buildingId": "ujeong",
+    "buildingName": "우정원",
+    "aliases": ["우정원", "기숙사"],
+    "floors": [
+      { "floor": "B1F", "mapImage": "/maps/ujeong_b1f.png" },
+      { "floor": "1F", "mapImage": "/maps/ujeong_1f.png" },
+      { "floor": "2F", "mapImage": "/maps/ujeong_2f.png" },
+      { "floor": "7F", "mapImage": "/maps/ujeong_7f.png" }
+    ]
   }
 ]
