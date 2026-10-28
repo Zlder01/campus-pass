@@ -1,38 +1,28 @@
 // public/js/bus.js
 
-// 버스 노선 기본 데이터
-const BUS_ROUTES = [
-  { id: 'M5107', name: 'M5107', direction: '사색의 광장 방면', badgeClass: 'm5107' },
-  { id: '5100',  name: '5100',  direction: '사색의 광장 방면', badgeClass: 'r5100' },
-  { id: '1112',  name: '1112',  direction: '사색의 광장 방면', badgeClass: 'r1112' },
-  { id: '7000',  name: '7000',  direction: '사색의 광장 방면', badgeClass: 'r7000' },
-  { id: '1560',  name: '1560',  direction: '사색의 광장 방면', badgeClass: 'r1560' },
-  { id: '9',     name: '9',     direction: '사색의 광장 방면', badgeClass: 'g9' }
-];
-
-// 1. 실시간 버스 도착 정보 가져오기
+// 1. 실시간 버스 도착 데이터 요청
 async function fetchBusArrivals() {
   try {
     const response = await fetch('/api/bus-arrivals');
-    if (!response.ok) throw new Error('API 응답 오류');
+    if (!response.ok) throw new Error('API 응답 에러');
     const data = await response.json();
-    renderBusList(data);
+    updateBusUI(data);
   } catch (error) {
-    console.error('버스 도착 정보를 불러오는 중 실패했습니다:', error);
-    renderBusList([]);
+    console.error('버스 도착 정보 로드 실패:', error);
+    // API 연결 실패 시 기본 예외 처리
+    updateBusUI([]);
   }
 }
 
-// 2. 심야 시간대 및 차고지 복귀 차량 예외 검증
-function isValidArrivalData(busData) {
+// 2. 심야 시간대 및 유효성 검증
+function isValidData(busData) {
   const currentHour = new Date().getHours();
 
-  // 심야 막차 이후 시간대 (01:00 ~ 05:00) 도착 데이터 무시
+  // 새벽 01시 ~ 05시 사이 도착 정보는 차고지 복귀 데이터로 간주해 무시
   if (currentHour >= 1 && currentHour < 5) {
     return false;
   }
 
-  // API 응답 데이터 유효성 검사
   if (!busData || !busData.predictTime1 || busData.predictTime1 <= 0) {
     return false;
   }
@@ -44,54 +34,67 @@ function isValidArrivalData(busData) {
   return true;
 }
 
-// 3. 버스 리스트 UI 렌더링 (기존 HTML 구조 100% 보존)
-function renderBusList(arrivalDataList) {
-  // 메인 버스 리스트 컨테이너
+// 3. UI 안전 업데이트
+function updateBusUI(arrivalList) {
+  // 노선 목록 정의
+  const routes = ['M5107', '5100', '1112', '7000', '1560', '9'];
+
+  // dynamic-list 방식과 static-item 방식 모두 대응
   const busContainer = document.querySelector('.bus-list') || document.getElementById('busListContainer');
-  if (!busContainer) return;
 
-  busContainer.innerHTML = BUS_ROUTES.map(route => {
-    const arrivalInfo = arrivalDataList.find(item => item.routeId === route.id || item.routeName === route.name);
-    const hasValidData = isValidArrivalData(arrivalInfo);
+  // 만약 컨테이너 안에 이미 개별 엘리먼트들이 지정되어 있는 경우
+  routes.forEach(routeName => {
+    const busItem = arrivalList.find(item => item.routeId === routeName || item.routeName === routeName);
+    const isValid = isValidData(busItem);
 
-    let arrivalHtml = '';
-    if (hasValidData) {
-      const minutes = arrivalInfo.predictTime1;
-      const nextBus = arrivalInfo.predictTime2 ? `다음 ${arrivalInfo.predictTime2}분` : '';
+    // ID나 클래스로 특정 노선 영역 찾기
+    const targetElem = document.getElementById(`bus-${routeName.toLowerCase()}`) || 
+                       document.querySelector(`.bus-item[data-route="${routeName}"]`);
 
-      arrivalHtml = `
-        <div class="arrival-info">
-          <span class="time-main">${minutes}분</span>
-          ${nextBus ? `<span class="time-sub">${nextBus}</span>` : ''}
+    if (targetElem) {
+      const statusElem = targetElem.querySelector('.bus-status') || targetElem.querySelector('.arrival-info');
+      if (statusElem) {
+        if (isValid) {
+          const min = busItem.predictTime1;
+          const next = busItem.predictTime2 ? `다음 ${busItem.predictTime2}분` : '';
+          statusElem.innerHTML = `<span class="time-main">${min}분</span> ${next ? `<span class="time-sub">${next}</span>` : ''}`;
+        } else {
+          statusElem.innerHTML = `<span class="status-end">운행종료</span>`;
+        }
+      }
+    }
+  });
+
+  // 동적으로 전체 리스트를 새로 그리는 구조일 경우
+  if (busContainer && busContainer.children.length === 0) {
+    busContainer.innerHTML = routes.map(routeName => {
+      const busItem = arrivalList.find(item => item.routeId === routeName || item.routeName === routeName);
+      const isValid = isValidData(busItem);
+
+      let statusHtml = isValid 
+        ? `<span class="time-main">${busItem.predictTime1}분</span>` 
+        : `<span class="status-end">운행종료</span>`;
+
+      return `
+        <div class="bus-item" id="bus-${routeName.toLowerCase()}">
+          <div class="bus-info">
+            <span class="bus-badge">${routeName}</span>
+            <span class="bus-dir">사색의 광장 방면</span>
+          </div>
+          <div class="bus-status">${statusHtml}</div>
         </div>
       `;
-    } else {
-      arrivalHtml = `<span class="status-end">운행종료</span>`;
-    }
-
-    return `
-      <div class="bus-card">
-        <div class="bus-badge ${route.badgeClass}">${route.name}</div>
-        <div class="bus-dir-info">
-          <span class="dir-text">${route.direction}</span>
-        </div>
-        <div class="bus-arrival">
-          ${arrivalHtml}
-        </div>
-      </div>
-    `;
-  }).join('');
+    }).join('');
+  }
 }
 
-// 4. 초기화 및 5초 간격 자동 새로고침
+// 4. 초기화
 function initBusModule() {
   fetchBusArrivals();
 
   const refreshBtn = document.getElementById('refreshBusBtn') || document.querySelector('.btn-refresh');
   if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      fetchBusArrivals();
-    });
+    refreshBtn.addEventListener('click', fetchBusArrivals);
   }
 
   setInterval(fetchBusArrivals, 5000);
