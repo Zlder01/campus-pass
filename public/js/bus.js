@@ -86,7 +86,37 @@ const state = {
   busRawData: generateSimulationData()
 };
 
+// 1. 심야 시간대(01:00 ~ 05:00) 검증
+function isLateNightOffTime() {
+  const currentHour = new Date().getHours();
+  return currentHour >= 1 && currentHour < 5;
+}
+
+// 2. 주간 차고지 복귀 및 불량 유령 데이터 필터링 검증
+function isDepotReturnVehicle(arr) {
+  if (!arr) return true;
+
+  // 플래그 상태 검사 (STOP, END, GARAGE 등 차고지/종료 플래그)
+  if (arr.flag && arr.flag !== 'RUN' && arr.flag !== 'NORMAL' && arr.flag !== 'OPERATING') {
+    return true;
+  }
+
+  // 차고지 입고 차량 특성: 차량번호가 누락되거나 빈 문자열인 경우
+  if (arr.plateNo1 === null || arr.plateNo1 === '') {
+    return true;
+  }
+
+  // 남은 정류장 수가 비정상적인 경우 (0 이하 또는 90 이상)
+  if (arr.locationNo1 !== undefined && (arr.locationNo1 <= 0 || arr.locationNo1 > 90)) {
+    return true;
+  }
+
+  return false;
+}
+
 function getTimetableDeparture(routeObj) {
+  if (isLateNightOffTime()) return null;
+
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinutes = currentHour * 60 + now.getMinutes();
@@ -107,6 +137,10 @@ function getTimetableDeparture(routeObj) {
 }
 
 function generateSimulationData() {
+  if (isLateNightOffTime()) {
+    return { inbound: {}, outbound: {} };
+  }
+
   const baseGateIn = { 'M5107': [3, 14], '5100': [2, 11], '1112': [5, 18], '7000': [8, 22], '1560': [1, 15], '9': [4, 12] };
   const baseGateOut = { 'M5107': [6, 17], '5100': [5, 14], '1112': [8, 21], '7000': [10, 25], '1560': [4, 18], '9': [7, 16] };
   const data = { inbound: {}, outbound: {} };
@@ -158,21 +192,28 @@ async function fetchRealApiData() {
       return null;
     };
 
-    apiRes.stops.forEach(stop => {
-      const targetId = mapStopId(stop.id, stop.dir);
-      const targetDict = stop.dir === 'in' ? newRaw.inbound : newRaw.outbound;
-      if (targetId && targetDict[targetId]) {
-        stop.arrivals.forEach(arr => {
-          targetDict[targetId][arr.route] = { t1: arr.t1, t2: arr.t2 };
-        });
-      }
-    });
+    // 심야 시간대 및 주간 차고지 복귀 차량 필터링 적용
+    if (!isLateNightOffTime() && apiRes.stops) {
+      apiRes.stops.forEach(stop => {
+        const targetId = mapStopId(stop.id, stop.dir);
+        const targetDict = stop.dir === 'in' ? newRaw.inbound : newRaw.outbound;
+        if (targetId && targetDict[targetId]) {
+          stop.arrivals.forEach(arr => {
+            // 차고지 복귀 차량이 아닐 때만 정제 데이터에 삽입
+            if (!isDepotReturnVehicle(arr)) {
+              targetDict[targetId][arr.route] = { t1: arr.t1, t2: arr.t2 };
+            }
+          });
+        }
+      });
+    }
 
     state.busRawData = newRaw;
     state.updatedAt = Date.now();
     renderBusView();
   } catch (err) {
     console.warn('API 연동 실패, 시뮬레이션 데이터를 유지합니다:', err);
+    renderBusView();
   }
 }
 
@@ -190,7 +231,8 @@ function getProcessedStopArrivals(direction) {
   TARGET_ROUTES.forEach(rt => {
     const routeDesc = isIn ? '사색의 광장 방면' : rt.desc;
     const originStopId = isIn ? 'gate_in' : 'square_out';
-    let originData = raw[originStopId]?.[rt.name];
+
+    let originData = isLateNightOffTime() ? null : raw[originStopId]?.[rt.name];
     let originT1 = originData?.t1;
     let originT2 = originData?.t2;
     let originIsTimetable = false;
@@ -208,7 +250,7 @@ function getProcessedStopArrivals(direction) {
       const stopIdx = result.findIndex(s => s.id === st.id);
       const candidates = [];
 
-      const directData = raw[st.id]?.[rt.name];
+      const directData = isLateNightOffTime() ? null : raw[st.id]?.[rt.name];
       if (directData && directData.t1 != null) {
         candidates.push({ t1: directData.t1, t2: directData.t2, isEstimated: false, isTimetable: false });
       }
