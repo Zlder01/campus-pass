@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Campus Pass Mockup - 경희대학교 버스 도착 예측</title>
+<title>Campus Pass - 경희대학교 실시간 버스 & 캠퍼스 지도</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
@@ -129,13 +129,64 @@
     background: var(--crimson); color: #fff; box-shadow: 0 2px 6px rgba(155, 27, 48, 0.3);
   }
 
+  /* Interactive Campus Map Container */
+  .map-interactive-card {
+    margin: 8px 16px 4px; background: #fff; border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .map-img-wrapper {
+    position: relative; width: 100%; padding-top: 68%; /* Aspect Ratio */
+    background: #e8ecef; overflow: hidden;
+  }
+  .map-img-wrapper img.bg-map {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  
+  /* 원본 핀 이미지 기반 마커 스타일 */
+  .stop-pin {
+    position: absolute; transform: translate(-50%, -100%);
+    display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 5;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .stop-pin:hover { transform: translate(-50%, -108%) scale(1.1); z-index: 10; }
+  
+  .pin-icon-wrap {
+    width: 28px; height: 35px; position: relative; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.35));
+  }
+  .pin-icon-wrap img {
+    width: 100%; height: 100%; display: block; object-fit: contain;
+  }
+  .pin-num {
+    position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
+    color: #15171c; font-size: 11px; font-weight: 850; text-align: center; line-height: 1;
+  }
+
+  .stop-pin.active { z-index: 12; transform: translate(-50%, -100%) scale(1.25); }
+  .stop-pin.active .pin-icon-wrap {
+    filter: drop-shadow(0 4px 10px rgba(155, 27, 48, 0.6));
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+
+  .pin-label {
+    background: rgba(21, 23, 28, 0.88); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px; margin-top: -1px; white-space: nowrap;
+    backdrop-filter: blur(2px); box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+  .stop-pin.active .pin-label { background: #9b1b30; font-size: 11px; font-weight: 800; }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
   .offset-info-box {
     margin: 8px 16px; padding: 10px 12px; background: var(--amber-tint); color: var(--amber-ink);
     border-radius: 8px; font-size: 12px; line-height: 1.45; display: flex; align-items: flex-start; gap: 8px;
   }
   .offset-info-box svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
 
-  .bus-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 4px; }
+  .bus-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px 4px; }
   .bus-meta-l { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .badge-sample { background: var(--amber-tint); color: var(--amber-ink); font-weight: 650; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
   .badge-est { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; font-weight: 650; border-radius: 4px; padding: 1px 5px; font-size: 10px; display: inline-block; }
@@ -168,10 +219,6 @@
   .t2 { display: block; font-size: 11px; font-weight: 500; color: var(--ink-2); }
   .t1.ended { font-size: 13px; color: var(--ink-2); font-weight: 600; }
 
-  /* Map View UI */
-  .map-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; }
-  .map-wrap svg { display: block; width: 100%; height: auto; }
-
   /* Desktop layout tweaks */
   .desktop .top { padding: 10px 24px; }
   .desktop .landing { align-items: center; justify-content: center; padding: 40px 24px; gap: 20px; }
@@ -180,8 +227,6 @@
   .desktop .choice-title { font-size: 32px; }
 
   .bus-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, 1fr); }
-  .bus-cols .map-side { padding: 16px 24px; border-right: 1px solid var(--line); }
-  .bus-cols .map-side h2 { font-size: 20px; font-weight: 750; margin-bottom: 12px; }
   .bus-cols .stops { padding: 6px 24px 24px; }
   .desktop .bus-meta { padding: 16px 24px 6px; }
 </style>
@@ -214,16 +259,15 @@
 </div>
 
 <script>
-// 네이버/GBIS 실시간 운행 데이터 기반 시간대별 가변 배차 간격 설정
 const TARGET_ROUTES = [
   { 
     name: 'M5107', type: 'm', desc: '서울역 방면 (광역급행)',
     startHour: 5, startMin: 0, endHour: 23, endMin: 0,
     intervals: [
-      { start: 5,  end: 9,  interval: 6 },  // 출근 6분
-      { start: 9,  end: 17, interval: 11 }, // 낮 11분
-      { start: 17, end: 20, interval: 7 },  // 퇴근 7분
-      { start: 20, end: 24, interval: 12 }  // 야간 12분
+      { start: 5,  end: 9,  interval: 6 },
+      { start: 9,  end: 17, interval: 11 },
+      { start: 17, end: 20, interval: 7 },
+      { start: 20, end: 24, interval: 12 }
     ]
   },
   { 
@@ -280,20 +324,30 @@ const TARGET_ROUTES = [
 
 const STATIONS = {
   inbound: [
-    { id: 'gate_in', name: { ko: '경희대정문', en: 'Main Gate' }, where: { ko: '입교 방향', en: 'Inbound' }, pos: { x: 72, y: 240 } },
-    { id: 'foreign_in', name: { ko: '외국어대학', en: 'Foreign Languages' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 140, y: 170 } },
-    { id: 'life_in', name: { ko: '생명과학대', en: 'Life Sciences' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 210, y: 110 } },
-    { id: 'square_in', name: { ko: '사색의 광장 (종점)', en: 'Square of Thought' }, where: { ko: '하차 전용', en: 'Terminus' }, pos: { x: 280, y: 50 } }
+    { id: 'gate_in', name: { ko: '경희대정문', en: 'Main Gate' }, where: { ko: '입교 방향', en: 'Inbound' }, pos: { x: 86.5, y: 22.0 } },
+    { id: 'foreign_in', name: { ko: '외국어대학', en: 'Foreign Languages' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 55.0, y: 20.0 } },
+    { id: 'life_in', name: { ko: '생명과학대', en: 'Life Sciences' }, where: { ko: '사색의 광장 방향', en: 'To Square' }, pos: { x: 41.0, y: 38.0 } },
+    { id: 'square_in', name: { ko: '사색의 광장 (종점)', en: 'Square of Thought' }, where: { ko: '하차 전용', en: 'Terminus' }, pos: { x: 25.5, y: 55.0 } }
   ],
   outbound: [
-    { id: 'square_out', name: { ko: '사색의 광장 (기점)', en: 'Square of Thought' }, where: { ko: '승차 기점', en: 'Departure' }, pos: { x: 280, y: 50 } },
-    { id: 'life_out', name: { ko: '생명과학대·산업대학', en: 'Life & Applied Sciences' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 210, y: 110 } },
-    { id: 'foreign_out', name: { ko: '경희대체육대학·외대', en: 'Sports & Foreign Lang' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 140, y: 170 } },
-    { id: 'gate_out', name: { ko: '경희대정문 (출교)', en: 'Main Gate' }, where: { ko: '시외/수원 방면', en: 'Outbound' }, pos: { x: 72, y: 240 } }
+    { id: 'square_out', name: { ko: '사색의 광장 (기점)', en: 'Square of Thought' }, where: { ko: '승차 기점', en: 'Departure' }, pos: { x: 25.5, y: 55.0 } },
+    { id: 'life_out', name: { ko: '생명과학대·산업대학', en: 'Life & Applied Sciences' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 41.0, y: 38.0 } },
+    { id: 'foreign_out', name: { ko: '경희대체육대학·외대', en: 'Sports & Foreign Lang' }, where: { ko: '정문 방향', en: 'To Main Gate' }, pos: { x: 55.0, y: 20.0 } },
+    { id: 'gate_out', name: { ko: '경희대정문 (출교)', en: 'Main Gate' }, where: { ko: '시외/수원 방면', en: 'Outbound' }, pos: { x: 86.5, y: 22.0 } }
   ]
 };
 
-// 현재 시각의 출퇴근/일반 시간대별 배차 간격을 추출하여 시간표 계산
+const state = {
+  lang: 'ko',
+  layout: 'auto',
+  page: 'landing',
+  direction: 'inbound',
+  selectedStopId: 'gate_in',
+  dataMode: 'api',
+  updatedAt: Date.now(),
+  busRawData: generateSimulationData()
+};
+
 function getTimetableDeparture(routeObj) {
   const now = new Date();
   const currentHour = now.getHours();
@@ -301,9 +355,7 @@ function getTimetableDeparture(routeObj) {
   const startMinutes = routeObj.startHour * 60 + routeObj.startMin;
   const endMinutes = routeObj.endHour * 60 + routeObj.endMin;
 
-  if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
-    return null;
-  }
+  if (currentMinutes < startMinutes || currentMinutes > endMinutes) return null;
 
   const matched = routeObj.intervals?.find(i => currentHour >= i.start && currentHour < i.end);
   const activeInterval = matched ? matched.interval : 15;
@@ -342,17 +394,6 @@ function generateSimulationData() {
 
   return data;
 }
-
-const state = {
-  lang: 'ko',
-  layout: 'auto',
-  page: 'landing',
-  direction: 'inbound',
-  dataMode: 'api',
-  query: '',
-  updatedAt: Date.now(),
-  busRawData: generateSimulationData()
-};
 
 async function fetchRealApiData() {
   try {
@@ -413,7 +454,6 @@ function getProcessedStopArrivals(direction) {
 
   TARGET_ROUTES.forEach(rt => {
     const routeDesc = isIn ? '사색의 광장 방면' : rt.desc;
-
     const originStopId = isIn ? 'gate_in' : 'square_out';
     let originData = raw[originStopId]?.[rt.name];
     let originT1 = originData?.t1;
@@ -562,7 +602,7 @@ function landingView() {
             <b>${quickest.t1 ? `${quickest.t1}분` : '운행종료'}</b>
             <span>정문 기준 · ${esc(quickest.route)} (${esc(quickest.desc)})</span>
           </span>
-          <span class="choice-desc">교내 노선 구간 이동시간 및 출퇴근 시간대별 시간표 자동 연동 지원</span>
+          <span class="choice-desc">인터랙티브 캠퍼스 지도 정류장 선택 & 실시간 버스 정보 지원</span>
           <span class="choice-go">버스 도착 확인하기 ${I.arrow}</span>
         </button>
 
@@ -581,6 +621,12 @@ function landingView() {
 
 function busView() {
   const stopsData = getProcessedStopArrivals(state.direction);
+  const currentStops = STATIONS[state.direction];
+
+  const validSelected = currentStops.some(s => s.id === state.selectedStopId);
+  if (!validSelected) {
+    state.selectedStopId = currentStops[0].id;
+  }
 
   const directionTabs = `<div class="direction-tabs" role="tablist">
     <button type="button" role="tab" aria-selected="${state.direction === 'inbound'}" data-dir="inbound">
@@ -591,12 +637,32 @@ function busView() {
     </button>
   </div>`;
 
+  // 전달해주신 pin.png 원본 이미지 사용
+  const mapInteractive = `<div class="map-interactive-card">
+    <div class="map-img-wrapper">
+      <img class="bg-map" src="/campus_map.jpg" onError="this.src='/maps/campus_map.jpg';" alt="경희대 조감도 지도" />
+      ${currentStops.map((st, idx) => {
+        const isActive = st.id === state.selectedStopId;
+        return `
+          <div class="stop-pin ${isActive ? 'active' : ''}" 
+               style="left: ${st.pos.x}%; top: ${st.pos.y}%;" 
+               data-stop-pin="${st.id}">
+            <div class="pin-icon-wrap">
+              <img src="/pin.png" alt="위치 핀 마커" />
+              <div class="pin-num">${idx + 1}</div>
+            </div>
+            <div class="pin-label">${esc(st.name.ko)}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  </div>`;
+
   const offsetNotice = `<div class="offset-info-box">
     ${I.info}
     <div>
-      <strong>보정 및 시간표 계산 안내:</strong><br>
-      · 교내 API 미제공 노선은 주요 기준점(기점 및 정문)의 데이터를 기반으로 이동 시간을 자동 가산합니다.<br>
-      · 대기 중이거나 API 미인식 시 출퇴근/일반 시간대별 정시 시간표를 자동 적용합니다.
+      <strong>지도 정류장 선택 안내:</strong><br>
+      지도 위 위치 핀(📍)을 터치하면 스크롤 없이 해당 정류장의 버스 도착 정보를 즉시 확인할 수 있습니다.
     </div>
   </div>`;
 
@@ -608,7 +674,9 @@ function busView() {
     <button type="button" class="refresh" data-refresh>${I.refresh}새로고침</button>
   </div>`;
 
-  const stopsHtml = `<div class="stops">${stopsData.map(s => `
+  const selectedStopData = stopsData.filter(s => s.id === state.selectedStopId);
+
+  const stopsHtml = `<div class="stops">${selectedStopData.map(s => `
     <section class="stop">
       <div class="stop-header">
         <h2>${esc(s.name.ko)}</h2>
@@ -633,40 +701,13 @@ function busView() {
     </section>
   `).join('')}</div>`;
 
-  if (!isDesktop()) {
-    return `<header class="top">${topBar('버스 정보')}</header>
-      <div class="main scroll">
-        ${directionTabs}
-        ${offsetNotice}
-        ${meta}
-        ${stopsHtml}
-      </div>`;
-  }
-
   return `<header class="top">${topBar('버스 정보')}</header>
-    <div class="main" style="padding-bottom:0">
+    <div class="main scroll">
       ${directionTabs}
-      <div class="bus-cols">
-        <div class="map-side scroll">
-          <h2>캠퍼스 노선 경로</h2>
-          ${offsetNotice}
-          <div class="map-wrap">
-            <svg viewBox="0 0 360 260">
-              <rect width="360" height="260" fill="#f8f9fa"/>
-              <path d="M 60 220 Q 140 170, 210 110 T 280 50" fill="none" stroke="#9b1b30" stroke-width="4" stroke-dasharray="6 4"/>
-              ${STATIONS[state.direction].map((st, i) => `
-                <circle cx="${st.pos.x}" cy="${st.pos.y}" r="8" fill="#9b1b30"/>
-                <circle cx="${st.pos.x}" cy="${st.pos.y}" r="4" fill="#fff"/>
-                <text x="${st.pos.x + 12}" y="${st.pos.y + 4}" font-size="12" font-weight="700" fill="#15171c">${i + 1}. ${esc(st.name.ko)}</text>
-              `).join('')}
-            </svg>
-          </div>
-        </div>
-        <div class="scroll">
-          ${meta}
-          ${stopsHtml}
-        </div>
-      </div>
+      ${mapInteractive}
+      ${offsetNotice}
+      ${meta}
+      ${stopsHtml}
     </div>`;
 }
 
@@ -743,6 +784,13 @@ $app.addEventListener('click', (e) => {
   const dirBtn = e.target.closest('[data-dir]');
   if (dirBtn) {
     state.direction = dirBtn.dataset.dir;
+    render();
+    return;
+  }
+
+  const pinBtn = e.target.closest('[data-stop-pin]');
+  if (pinBtn) {
+    state.selectedStopId = pinBtn.dataset.stopPin;
     render();
     return;
   }
