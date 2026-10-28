@@ -243,7 +243,6 @@ const FALLBACK_OFFSETS = {
   outbound: { square_out: 0, life_out: 1.5, foreign_out: 3.0, gate_out: 5.0 }
 };
 
-// 기점/정문 출발 시간표 기준 남아있는 분 계산
 function getTimetableDeparture(routeObj) {
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -354,8 +353,10 @@ function getProcessedStopArrivals(direction) {
   }));
 
   TARGET_ROUTES.forEach(rt => {
+    // 동적 행선지 문구 결정: 들어오는 방향은 '사색의 광장 방면', 나가는 방향은 시외 목적지
+    const routeDesc = isIn ? '사색의 광장 방면' : rt.desc;
+
     if (isIn) {
-      // 들어오는 방향 (정문 -> 외대 -> 생명대 -> 사색의광장)
       let baseT1 = raw['gate_in']?.[rt.name]?.t1;
       let baseT2 = raw['gate_in']?.[rt.name]?.t2;
       let isGateApi = baseT1 != null;
@@ -378,7 +379,7 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: directData.t1,
             t2: directData.t2,
             isEstimated: false,
@@ -396,7 +397,7 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: estT1,
             t2: estT2,
             isEstimated: !isTimetableUsed,
@@ -406,7 +407,7 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: null,
             t2: null,
             isEstimated: false,
@@ -416,7 +417,6 @@ function getProcessedStopArrivals(direction) {
       });
 
     } else {
-      // 나가는 방향 (사색의광장 기점 -> 생명대 -> 외대 -> 정문)
       let baseT1 = raw['square_out']?.[rt.name]?.t1;
       let baseT2 = raw['square_out']?.[rt.name]?.t2;
       let isSquareApi = baseT1 != null;
@@ -441,14 +441,13 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: directData.t1,
             t2: directData.t2,
             isEstimated: false,
             isTimetable: false
           });
         } else if (baseT1 != null) {
-          // 기점(사색의 광장) 시각 기준 순방향 시간 가산!
           let offset = 0;
           if (st.id === 'square_out') offset = 0;
           else if (st.id === 'life_out') offset = 1.5;
@@ -461,7 +460,7 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: estT1,
             t2: estT2,
             isEstimated: !isTimetableUsed,
@@ -477,7 +476,7 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: estT1,
             t2: null,
             isEstimated: true,
@@ -487,7 +486,7 @@ function getProcessedStopArrivals(direction) {
           result[stopIdx].arrivals.push({
             route: rt.name,
             type: rt.type,
-            desc: rt.desc,
+            desc: routeDesc,
             t1: null,
             t2: null,
             isEstimated: false,
@@ -503,7 +502,7 @@ function getProcessedStopArrivals(direction) {
 
 const isDesktop = () => (state.layout === 'auto' ? window.innerWidth >= 900 : state.layout === 'desktop');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const mins = (n) => (n <= 1 ? '<span class="soon">곧 출발</span>' : `${n}<small>분</small>`);
+const mins = (n) => (n <= 1 ? '<span class="soon">곧 도착</span>' : `${n}<small>분</small>`);
 const ago = () => Math.round((Date.now() - state.updatedAt) / 1000);
 
 const svg = (d, cls = '') => `<svg ${cls ? `class="${cls}"` : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
