@@ -1,3 +1,5 @@
+// api/bus.js
+
 const STOPS = {
   'main-gate':   { ko: '경희대정문',           en: 'Main Gate',        dir: 'in',  id: '228000707' },
   'foreign':     { ko: '외국어대학',           en: 'Foreign Lang',     dir: 'in',  id: '228000701' },
@@ -12,6 +14,35 @@ const API_URL = 'https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArri
 
 const num = (v) => (v === '' || v == null ? null : Number(v));
 
+// 1. 심야 시간대 판단 (01:00 ~ 05:00)
+function isLateNightOffTime() {
+  const currentHour = new Date().getHours();
+  return currentHour >= 1 && currentHour < 5;
+}
+
+// 2. 차고지 복귀 및 불량 유령 데이터 필터링 검증
+function isDepotReturnVehicle(b) {
+  if (!b) return true;
+
+  // 플래그 검사 (STOP, END, GARAGE 등 정류장 입고/종료 플래그 제외)
+  if (b.flag && b.flag !== 'RUN' && b.flag !== 'NORMAL' && b.flag !== 'OPERATING') {
+    return true;
+  }
+
+  // 차고지 입고 차량: 차량 번호가 없거나 빈 값인 경우
+  if (b.plateNo1 === null || b.plateNo1 === '' || b.plateNo1 === undefined) {
+    return true;
+  }
+
+  // 남은 정류장 수가 비정상적인 경우 (0 이하 또는 90 이상)
+  const loc = num(b.locationNo1);
+  if (loc !== null && (loc <= 0 || loc > 90)) {
+    return true;
+  }
+
+  return false;
+}
+
 async function fetchStop(key) {
   const s = STOPS[key];
   const apiKey = process.env.BUS_API_KEY;
@@ -24,22 +55,28 @@ async function fetchStop(key) {
   let list = json?.response?.msgBody?.busArrivalList ?? [];
   if (!Array.isArray(list)) list = [list];
 
+  // 심야 시간대이거나 차고지 복귀 차량인 경우 걸러냄
+  const filteredList = isLateNightOffTime() 
+    ? [] 
+    : list.filter((b) => ROUTES.has(String(b.routeName)) && !isDepotReturnVehicle(b));
+
   return {
     id: key,
     stationId: s.id,
     dir: s.dir,
     name: { ko: s.ko, en: s.en },
-    arrivals: list
-      .filter((b) => ROUTES.has(String(b.routeName)))
-      .map((b) => ({
-        route: String(b.routeName),
-        dest: {
-          ko: s.dir === 'in' ? '사색의 광장 방면' : '정문/차고지 방면',
-          en: s.dir === 'in' ? 'Inbound' : 'Outbound'
-        },
-        t1: num(b.predictTime1),
-        t2: num(b.predictTime2)
-      }))
+    arrivals: filteredList.map((b) => ({
+      route: String(b.routeName),
+      dest: {
+        ko: s.dir === 'in' ? '사색의 광장 방면' : '정문/차고지 방면',
+        en: s.dir === 'in' ? 'Inbound' : 'Outbound'
+      },
+      t1: num(b.predictTime1),
+      t2: num(b.predictTime2),
+      flag: b.flag ?? null,
+      plateNo1: b.plateNo1 ?? null,
+      locationNo1: num(b.locationNo1)
+    }))
   };
 }
 
