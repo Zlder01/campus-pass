@@ -2,26 +2,133 @@
   {
     "buildingId": "eng_main",
     "buildingName": "공학관",
-    "aliases": ["공학관", "공대", "공학", "공"],
+    "aliases": ["공학관", "공대", "공학"],
     "floors": [
       {
         "floor": "1F",
         "mapImage": "/maps/eng_main_1f.png",
-        "rooms": [
-          {
-            "roomId": "101",
-            "roomName": "101호",
-            "aliases": ["공101", "공대101", "공학관101호", "101"],
-            "polygon": "77.2,76.8 84.8,76.8 84.8,94.6 77.2,94.6"
-          },
-          {
-            "roomId": "106",
-            "roomName": "106호 (대강당)",
-            "aliases": ["공106", "공대106", "공학관106호", "106"],
-            "polygon": "1.8,2.2 21.8,2.2 21.8,43.2 14.5,43.2 14.5,51.0 1.8,51.0"
-          }
-        ]
+        "rooms": []
       }
     ]
+  },
+  {
+    "buildingId": "eng_exp",
+    "buildingName": "공학실험동",
+    "aliases": ["공학실험동", "공실동"],
+    "floors": []
+  },
+  {
+    "buildingId": "int_biz",
+    "buildingName": "국제경영대학관",
+    "aliases": ["국제경영대학관", "국경대", "국경관"],
+    "floors": []
+  },
+  {
+    "buildingId": "int_hall",
+    "buildingName": "국제학관",
+    "aliases": ["국제학관", "국학관"],
+    "floors": []
+  },
+  {
+    "buildingId": "global",
+    "buildingName": "글로벌관",
+    "aliases": ["글로벌관", "글관"],
+    "floors": []
+  },
+  {
+    "buildingId": "ceramic",
+    "buildingName": "도예관",
+    "aliases": ["도예관"],
+    "floors": []
+  },
+  {
+    "buildingId": "multimedia",
+    "buildingName": "멀티미디어관",
+    "aliases": ["멀티미디어관", "멀관"],
+    "floors": []
+  },
+  {
+    "buildingId": "life_sci",
+    "buildingName": "생명과학대학관",
+    "aliases": ["생명과학대학관", "생대", "생명대관"],
+    "floors": []
+  },
+  {
+    "buildingId": "seonseung",
+    "buildingName": "선승관",
+    "aliases": ["선승관", "체육관"],
+    "floors": []
+  },
+  {
+    "buildingId": "exp_research",
+    "buildingName": "실험연구동",
+    "aliases": ["실험연구동", "실연구동"],
+    "floors": []
+  },
+  {
+    "buildingId": "art_design",
+    "buildingName": "예술디자인대학관",
+    "aliases": ["예술디자인대학관", "예디대", "예디관", "예"],
+    "floors": []
+  },
+  {
+    "buildingId": "foreign_lang",
+    "buildingName": "외국어대학관",
+    "aliases": ["외국어대학관", "외대", "외대관"],
+    "floors": []
+  },
+  {
+    "buildingId": "ujeong",
+    "buildingName": "우정원",
+    "aliases": ["우정원", "기숙사"],
+    "floors": []
+  },
+  {
+    "buildingId": "horticulture_greenhouse",
+    "buildingName": "원예생명과학온실",
+    "aliases": ["원예생명과학온실", "온실"],
+    "floors": []
+  },
+  {
+    "buildingId": "nuclear_lab",
+    "buildingName": "원자력실험실",
+    "aliases": ["원자력실험실", "원자력실험동"],
+    "floors": []
+  },
+  {
+    "buildingId": "eecs",
+    "buildingName": "전자정보대학",
+    "aliases": ["전자정보대학", "전디대", "전정보", "전디관"],
+    "floors": []
+  },
+  {
+    "buildingId": "central_lib",
+    "buildingName": "중앙도서관",
+    "aliases": ["중앙도서관", "중도"],
+    "floors": []
+  },
+  {
+    "buildingId": "observatory",
+    "buildingName": "천문대",
+    "aliases": ["천문대"],
+    "floors": []
+  },
+  {
+    "buildingId": "pe_college",
+    "buildingName": "체육대학관",
+    "aliases": ["체육대학관", "체대관"],
+    "floors": []
+  },
+  {
+    "buildingId": "student_hall",
+    "buildingName": "학생회관",
+    "aliases": ["학생회관", "학관"],
+    "floors": []
+  },
+  {
+    "buildingId": "oriental_medicine_factory",
+    "buildingName": "한방재료가공기업",
+    "aliases": ["한방재료가공기업", "한방재료"],
+    "floors": []
   }
 ]
