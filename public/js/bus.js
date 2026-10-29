@@ -63,6 +63,9 @@ const TARGET_ROUTES = [
   }
 ];
 
+// 정문에서만 정차하는 노선 (학교 안쪽 정류장은 정문 기준 시간차로 표시)
+const GATE_BASED_ROUTES = new Set(['M5107', '1560']);
+
 const STATIONS = {
   inbound: [
     { id: 'gate_in', name: { ko: '경희대정문', en: 'Main Gate' }, where: { ko: '입교 방향', en: 'Inbound' }, pos: { x: 80.0, y: 5.5 } },
@@ -269,11 +272,22 @@ function getProcessedStopArrivals(direction) {
       const stopIdx = result.findIndex(s => s.id === st.id);
       const candidates = [];
 
-      const directData = isLateNightOffTime() ? null : raw[st.id]?.[rt.name];
-      // M5107·1560처럼 정문이 종점인 노선은 학교 안 정류장 추정치가 없으므로 '정문 도착 + 진입 시간'으로 계산
+      // M5107·1560은 정문에서만 정차(학교 안쪽은 API에 정류장으로 안 잡힘) → 정문 값 + 정류장별 시간차로만 표시
+      const gateBased = isIn && GATE_BASED_ROUTES.has(rt.name) && st.id !== 'gate_in';
+      const directData = isLateNightOffTime() || gateBased ? null : raw[st.id]?.[rt.name];
       const gateTracked = isIn ? state.tracked?.gate_in?.[rt.name] : null;
-      const trackedMins = state.tracked?.[st.id]?.[rt.name]
-        ?? (gateTracked ? gateTracked.map(m => Math.round(m + (offsets[st.id] || 0))) : null);
+      let trackedMins = null;
+      if (gateBased) {
+        // 정문의 API 도착정보 + 정문 위치추적 값을 합쳐(3분 이내 중복 제거) 가까운 2대에 시간차를 더함
+        const gateApi = raw.gate_in?.[rt.name];
+        const base = [gateApi?.t1, gateApi?.t2, ...(gateTracked || [])].filter(v => v != null).sort((a, b) => a - b);
+        const merged = [];
+        base.forEach(v => { if (!merged.length || v - merged[merged.length - 1] > 3) merged.push(v); });
+        if (merged.length) trackedMins = merged.slice(0, 2).map(m => Math.round(m + (offsets[st.id] || 0)));
+      } else {
+        trackedMins = state.tracked?.[st.id]?.[rt.name]
+          ?? (gateTracked ? gateTracked.map(m => Math.round(m + (offsets[st.id] || 0))) : null);
+      }
 
       if (directData && directData.t1 != null) {
         // 이 정류장 도착정보가 비어 있는 '다음 버스'는 위치 추적값으로 채움
@@ -284,7 +298,7 @@ function getProcessedStopArrivals(direction) {
 
       // 도착정보에 아직 안 잡히는 먼 버스(고속도로 위 등)는 위치 추적으로 계산한 값 사용
       if (trackedMins && trackedMins.length) {
-        candidates.push({ t1: trackedMins[0], t2: trackedMins[1] ?? null, isEstimated: false, isTimetable: false, isTracked: true });
+        candidates.push({ t1: trackedMins[0], t2: trackedMins[1] ?? null, isEstimated: gateBased, isTimetable: false, isTracked: !gateBased });
       }
 
       if (originT1 != null) {
