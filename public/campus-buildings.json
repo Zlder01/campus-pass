@@ -1,0 +1,470 @@
+[
+  {
+    "no": 1,
+    "name": "정문(새천년기념탑:네오르네상스문)",
+    "aliases": [
+      "정문(새천년기념탑:네오르네상스문)",
+      "정문",
+      "새천년기념탑",
+      "네오르네상스문"
+    ],
+    "x": 77.56,
+    "y": 13.83,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zixq",
+    "buildingIds": []
+  },
+  {
+    "no": 2,
+    "name": "애지원",
+    "aliases": [
+      "애지원"
+    ],
+    "x": 93.24,
+    "y": 24.98,
+    "inMap": true,
+    "route": "http://dmaps.kr/9ziyy",
+    "buildingIds": []
+  },
+  {
+    "no": 3,
+    "name": "르네상스공원",
+    "aliases": [
+      "르네상스공원"
+    ],
+    "x": 71.35,
+    "y": 17.55,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjzh",
+    "buildingIds": []
+  },
+  {
+    "no": 4,
+    "name": "우정원",
+    "aliases": [
+      "우정원",
+      "제1기숙사",
+      "기숙사"
+    ],
+    "x": 65.99,
+    "y": 9.73,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjzt",
+    "buildingIds": [
+      "ujeong"
+    ]
+  },
+  {
+    "no": 5,
+    "name": "인조잔디구장/지하주차장",
+    "aliases": [
+      "인조잔디구장/지하주차장",
+      "인조잔디구장",
+      "지하주차장"
+    ],
+    "x": 68.2,
+    "y": 32.21,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj2h",
+    "buildingIds": []
+  },
+  {
+    "no": 6,
+    "name": "공학관",
+    "aliases": [
+      "공학관"
+    ],
+    "x": 75.56,
+    "y": 40.42,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj2t",
+    "buildingIds": [
+      "eng_main"
+    ]
+  },
+  {
+    "no": 7,
+    "name": "원자로센터",
+    "aliases": [
+      "원자로센터"
+    ],
+    "x": 82.93,
+    "y": 40.42,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj3i",
+    "buildingIds": [
+      "nuclear_lab"
+    ]
+  },
+  {
+    "no": 8,
+    "name": "공학실험동",
+    "aliases": [
+      "공학실험동"
+    ],
+    "x": 87.14,
+    "y": 45.9,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj44",
+    "buildingIds": [
+      "eng_exp"
+    ]
+  },
+  {
+    "no": 9,
+    "name": "체육대학관",
+    "aliases": [
+      "체육대학관"
+    ],
+    "x": 59.04,
+    "y": 39.25,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj4b",
+    "buildingIds": [
+      "pe_college"
+    ]
+  },
+  {
+    "no": 10,
+    "name": "외국어대학관",
+    "aliases": [
+      "외국어대학관"
+    ],
+    "x": 56.73,
+    "y": 22.83,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj4s",
+    "buildingIds": [
+      "foreign_lang"
+    ]
+  },
+  {
+    "no": 11,
+    "name": "경희공원",
+    "aliases": [
+      "경희공원"
+    ],
+    "x": 53.57,
+    "y": 13.25,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj4y",
+    "buildingIds": []
+  },
+  {
+    "no": 12,
+    "name": "멀티미디어교육관·글로벌관",
+    "aliases": [
+      "멀티미디어교육관·글로벌관",
+      "멀티미디어교육관글로벌관",
+      "멀티미디어교육관",
+      "멀티미디어관",
+      "글로벌관"
+    ],
+    "x": 46.31,
+    "y": 9.14,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj5a",
+    "buildingIds": [
+      "multimedia",
+      "global"
+    ]
+  },
+  {
+    "no": 13,
+    "name": "제2기숙사",
+    "aliases": [
+      "제2기숙사",
+      "기숙사"
+    ],
+    "x": 28.32,
+    "y": 10.7,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj5m",
+    "buildingIds": []
+  },
+  {
+    "no": 14,
+    "name": "대운동장",
+    "aliases": [
+      "대운동장",
+      "운동장"
+    ],
+    "x": 37.06,
+    "y": 25.17,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj5v",
+    "buildingIds": []
+  },
+  {
+    "no": 15,
+    "name": "도예관",
+    "aliases": [
+      "도예관"
+    ],
+    "x": 55.57,
+    "y": 53.33,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj68",
+    "buildingIds": [
+      "ceramic"
+    ]
+  },
+  {
+    "no": 16,
+    "name": "원예생명공학 온실",
+    "aliases": [
+      "원예생명공학 온실",
+      "온실",
+      "원예생명과학온실"
+    ],
+    "x": 51.26,
+    "y": 53.33,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj6g",
+    "buildingIds": [
+      "horticulture_greenhouse"
+    ]
+  },
+  {
+    "no": 17,
+    "name": "선승관",
+    "aliases": [
+      "선승관"
+    ],
+    "x": 39.58,
+    "y": 41.01,
+    "inMap": true,
+    "route": "http://dmaps.kr/9ziwo",
+    "buildingIds": [
+      "seonseung"
+    ]
+  },
+  {
+    "no": 18,
+    "name": "생명과학대학관",
+    "aliases": [
+      "생명과학대학관"
+    ],
+    "x": 46.42,
+    "y": 52.94,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zj8v",
+    "buildingIds": [
+      "life_sci"
+    ]
+  },
+  {
+    "no": 19,
+    "name": "한방재료가공(경희보감)",
+    "aliases": [
+      "한방재료가공(경희보감)",
+      "한방재료가공",
+      "경희보감"
+    ],
+    "x": 63.57,
+    "y": 71.9,
+    "inMap": true,
+    "route": "http://dmaps.kr/bxb73",
+    "buildingIds": [
+      "oriental_medicine_factory"
+    ]
+  },
+  {
+    "no": 20,
+    "name": "실험연구동",
+    "aliases": [
+      "실험연구동"
+    ],
+    "x": 46.63,
+    "y": 110.62,
+    "inMap": false,
+    "route": "http://dmaps.kr/9zjbp",
+    "buildingIds": [
+      "exp_research"
+    ]
+  },
+  {
+    "no": 21,
+    "name": "예술·디자인대학관",
+    "aliases": [
+      "예술·디자인대학관",
+      "예술디자인대학관"
+    ],
+    "x": 48.94,
+    "y": 77.38,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjcz",
+    "buildingIds": [
+      "art_design"
+    ]
+  },
+  {
+    "no": 22,
+    "name": "국제·경영대학관",
+    "aliases": [
+      "국제·경영대학관",
+      "국제경영대학관"
+    ],
+    "x": 35.69,
+    "y": 55.28,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjdc",
+    "buildingIds": [
+      "int_biz"
+    ]
+  },
+  {
+    "no": 23,
+    "name": "학생회관",
+    "aliases": [
+      "학생회관"
+    ],
+    "x": 28.74,
+    "y": 39.25,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjdm",
+    "buildingIds": [
+      "student_hall"
+    ]
+  },
+  {
+    "no": 24,
+    "name": "중앙도서관(대학본부)",
+    "aliases": [
+      "중앙도서관(대학본부)",
+      "중앙도서관",
+      "대학본부"
+    ],
+    "x": 15.38,
+    "y": 38.86,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zje5",
+    "buildingIds": [
+      "central_lib"
+    ]
+  },
+  {
+    "no": 25,
+    "name": "사색의 광장",
+    "aliases": [
+      "사색의 광장"
+    ],
+    "x": 24.75,
+    "y": 60.96,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjeg",
+    "buildingIds": []
+  },
+  {
+    "no": 26,
+    "name": "주차장/노선버스종점",
+    "aliases": [
+      "주차장/노선버스종점",
+      "주차장",
+      "노선버스종점",
+      "버스종점",
+      "노선버스"
+    ],
+    "x": 35.27,
+    "y": 84.42,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjfx",
+    "buildingIds": []
+  },
+  {
+    "no": 27,
+    "name": "종합운동장",
+    "aliases": [
+      "종합운동장"
+    ],
+    "x": 27.8,
+    "y": 118.44,
+    "inMap": false,
+    "route": "http://dmaps.kr/9zjh8",
+    "buildingIds": []
+  },
+  {
+    "no": 28,
+    "name": "야구경기장",
+    "aliases": [
+      "야구경기장"
+    ],
+    "x": 14.65,
+    "y": 120.4,
+    "inMap": false,
+    "route": "http://dmaps.kr/9zjgv",
+    "buildingIds": []
+  },
+  {
+    "no": 29,
+    "name": "평화노천극장",
+    "aliases": [
+      "평화노천극장",
+      "노천극장"
+    ],
+    "x": 7.49,
+    "y": 96.54,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjho",
+    "buildingIds": []
+  },
+  {
+    "no": 30,
+    "name": "연못",
+    "aliases": [
+      "연못"
+    ],
+    "x": 13.38,
+    "y": 93.8,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjj9",
+    "buildingIds": []
+  },
+  {
+    "no": 31,
+    "name": "전자정보/응용과학대학관",
+    "aliases": [
+      "전자정보/응용과학대학관",
+      "전자정보",
+      "응용과학대학관",
+      "전자정보대학관",
+      "전정대",
+      "응과대"
+    ],
+    "x": 23.38,
+    "y": 85.4,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjjn",
+    "buildingIds": [
+      "eecs"
+    ]
+  },
+  {
+    "no": 32,
+    "name": "국제학관",
+    "aliases": [
+      "국제학관"
+    ],
+    "x": 14.86,
+    "y": 61.54,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjjt",
+    "buildingIds": [
+      "int_hall"
+    ]
+  },
+  {
+    "no": 33,
+    "name": "천문대",
+    "aliases": [
+      "천문대"
+    ],
+    "x": 3.28,
+    "y": 72.3,
+    "inMap": true,
+    "route": "http://dmaps.kr/9zjka",
+    "buildingIds": [
+      "observatory"
+    ]
+  }
+]

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>국제캠퍼스 지도</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="/css/common.css">
+<link rel="stylesheet" href="/css/campusmap.css">
+</head>
+<body>
+<div class="stage">
+  <div class="device">
+    <header class="top">
+      <a href="/index.html" class="home-btn">← 메인</a>
+      <h1>국제캠퍼스 지도</h1>
+    </header>
+
+    <!-- 검색 -->
+    <div class="cm-search">
+      <div class="cm-search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="placeInput" placeholder="건물·장소 검색 (예: 공학관, 중도, 노천극장)"
+               autocomplete="off" enterkeyhint="search" role="combobox" aria-expanded="false" aria-controls="suggestList">
+        <button type="button" id="clearBtn" class="cm-clear" aria-label="검색어 지우기" hidden>×</button>
+      </div>
+      <ul id="suggestList" class="cm-suggest" role="listbox" hidden></ul>
+      <p id="searchStatus" class="cm-status" aria-live="polite"></p>
+    </div>
+
+    <main class="cm-scroll">
+      <!-- 지도 -->
+      <section class="cm-map-card">
+        <div class="cm-viewport" id="mapViewport">
+          <div class="cm-inner" id="mapInner">
+            <img src="/campus_map.png" alt="경희대학교 국제캠퍼스 지도" draggable="false">
+            <div id="markerLayer" class="cm-marker-layer"></div>
+            <img id="beacon" class="cm-beacon" src="/pin.png" alt="" draggable="false">
+            <div id="edgeHint" class="cm-edge-hint" hidden>▼ 지도 아래쪽</div>
+          </div>
+        </div>
+        <div class="cm-map-tools">
+          <label class="cm-toggle"><input type="checkbox" id="numToggle" checked> 번호 표시</label>
+          <div class="cm-zoom">
+            <button type="button" id="zoomOut" aria-label="축소">−</button>
+            <button type="button" id="zoomReset">전체</button>
+            <button type="button" id="zoomIn" aria-label="확대">+</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 선택된 장소 정보 -->
+      <section id="infoCard" class="cm-info" hidden>
+        <div class="cm-info-head">
+          <span id="infoNo" class="cm-no"></span>
+          <h2 id="infoName"></h2>
+        </div>
+        <p id="infoNote" class="cm-info-note" hidden></p>
+        <div id="infoActions" class="cm-actions"></div>
+      </section>
+
+      <!-- 전체 목록 -->
+      <section class="cm-list-card">
+        <h2 class="cm-list-title">전체 건물·장소</h2>
+        <ul id="placeList" class="cm-list"></ul>
+      </section>
+
+      <p class="cm-source">건물 정보 출처: <a href="https://www.khu.ac.kr/kor/user/contents/view.do?menuNo=200086" target="_blank" rel="noopener">경희대학교 캠퍼스맵</a></p>
+    </main>
+  </div>
+</div>
+<script src="/js/campusmap.js"></script>
+</body>
+</html>
