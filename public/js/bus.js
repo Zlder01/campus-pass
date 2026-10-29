@@ -188,10 +188,10 @@ async function fetchRealApiData() {
         if (vId === 'lifesci') return 'life_in';
         if (vId === 'square') return 'square_in';
       } else {
-        if (vId === 'square') return 'square_out';
+        if (vId === 'square-out' || vId === 'square') return 'square_out';
         if (vId === 'lifesci-ind') return 'life_out';
         if (vId === 'pe-foreign') return 'foreign_out';
-        if (vId === 'main-gate') return 'gate_out';
+        if (vId === 'main-gate-out' || vId === 'main-gate') return 'gate_out';
       }
       return null;
     };
