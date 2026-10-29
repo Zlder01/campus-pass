@@ -96,8 +96,8 @@ function isLateNightOffTime() {
 function isDepotReturnVehicle(arr) {
   if (!arr) return true;
 
-  // 플래그 상태 검사 (STOP, END, GARAGE 등 차고지/종료 플래그)
-  if (arr.flag && arr.flag !== 'RUN' && arr.flag !== 'NORMAL' && arr.flag !== 'OPERATING') {
+  // 경기 GBIS flag: RUN·PASS = 운행중, STOP = 운행종료, WAIT = 회차지대기
+  if (arr.flag === 'STOP') {
     return true;
   }
 
@@ -121,14 +121,17 @@ function getTimetableDeparture(routeObj) {
   const currentHour = now.getHours();
   const currentMinutes = currentHour * 60 + now.getMinutes();
   const startMinutes = routeObj.startHour * 60 + routeObj.startMin;
-  const endMinutes = routeObj.endHour * 60 + routeObj.endMin;
+  let endMinutes = routeObj.endHour * 60 + routeObj.endMin;
+  // 막차가 자정 넘어서(00:10 등)면 다음날 시각으로 계산 — 예전엔 5100·7000이 하루 종일 '운행종료'로 나왔음
+  if (endMinutes <= startMinutes) endMinutes += 24 * 60;
+  const nowMinutes = currentMinutes < startMinutes ? currentMinutes + 24 * 60 : currentMinutes;
 
-  if (currentMinutes < startMinutes || currentMinutes > endMinutes) return null;
+  if (nowMinutes > endMinutes) return null;
 
   const matched = routeObj.intervals?.find(i => currentHour >= i.start && currentHour < i.end);
   const activeInterval = matched ? matched.interval : 15;
 
-  const elapsed = currentMinutes - startMinutes;
+  const elapsed = nowMinutes - startMinutes;
   const nextIn = activeInterval - (elapsed % activeInterval);
   const nextT1 = nextIn === 0 ? activeInterval : nextIn;
   const nextT2 = nextT1 + activeInterval;
@@ -273,8 +276,8 @@ function getProcessedStopArrivals(direction) {
           route: rt.name, type: rt.type, desc: routeDesc, t1: null, t2: null, isEstimated: false, isTimetable: false
         });
       } else {
-        candidates.sort((a, b) => a.t1 - b.t1);
-        const best = candidates[0];
+        // 이 정류장의 실시간 값이 있으면 그걸 우선 (추정·시간표 값이 더 작다고 덮어쓰지 않음)
+        const best = candidates.find(c => !c.isEstimated && !c.isTimetable) || candidates[0];
         result[stopIdx].arrivals.push({
           route: rt.name, type: rt.type, desc: routeDesc, t1: best.t1, t2: best.t2, isEstimated: best.isEstimated, isTimetable: best.isTimetable
         });
