@@ -2,14 +2,18 @@
 
 import { readEstimates } from '../lib/tracker.js';
 
+// 경기버스 위치추적 진단(/api/track?debug=1)으로 확인한 실제 정류장 ID (9·1112·5100·7000·M5107·1560 공통)
 const STOPS = {
-  // 정문은 노선마다 쓰는 정류장 ID가 다름 (M5107 등 정문이 종점인 노선은 228000723) → 둘 다 조회해서 합침
-  'main-gate':   { ko: '경희대정문',           en: 'Main Gate',        dir: 'in',  id: '228000707', extraIds: ['228000723'] },
-  'foreign':     { ko: '외국어대학',           en: 'Foreign Lang',     dir: 'in',  id: '228000701' },
-  'lifesci':     { ko: '생명과학대',           en: 'Life Sciences',    dir: 'in',  id: '228000702' },
-  'square':      { ko: '사색의광장',           en: 'Square of Thought',dir: 'out', id: '228000703' },
-  'lifesci-ind': { ko: '생명과학대·산업대학', en: 'Life & Applied',   dir: 'out', id: '228000704' },
-  'pe-foreign':  { ko: '경희대체육대학·외대', en: 'Physical Ed & For', dir: 'out', id: '228000708' }
+  // 들어오는 방향
+  'main-gate':     { ko: '경희대정문',           en: 'Main Gate',         dir: 'in',  id: '228000723' },
+  'foreign':       { ko: '외국어대학',           en: 'Foreign Lang',      dir: 'in',  id: '228000710' },
+  'lifesci':       { ko: '생명과학대',           en: 'Life Sciences',     dir: 'in',  id: '228000709' },
+  'square':        { ko: '사색의광장',           en: 'Square of Thought', dir: 'in',  id: '228000708' },
+  // 나가는 방향
+  'square-out':    { ko: '사색의광장',           en: 'Square of Thought', dir: 'out', id: '228001174' },
+  'lifesci-ind':   { ko: '생명과학대·산업대학', en: 'Life & Applied',    dir: 'out', id: '228000704' },
+  'pe-foreign':    { ko: '경희대체육대학·외대', en: 'Physical Ed & For', dir: 'out', id: '228000703' },
+  'main-gate-out': { ko: '경희대학교(정문)',     en: 'Main Gate',         dir: 'out', id: '203000125' }
 };
 
 const ROUTES = new Set(['M5107', '9', '5100', '1112', '7000', '1560']);
