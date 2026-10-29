@@ -83,7 +83,8 @@ const state = {
   selectedStopId: 'gate_in',
   dataMode: 'api',
   updatedAt: Date.now(),
-  busRawData: generateSimulationData()
+  busRawData: generateSimulationData(),
+  tracked: {} // 위치 추적 기반 추정치 { gate_in: { M5107: [6, 21] }, ... }
 };
 
 // 1. 심야 시간대(01:00 ~ 05:00) 검증
@@ -211,7 +212,17 @@ async function fetchRealApiData() {
       });
     }
 
+    // 서버(api/track)가 버스 위치로 계산한 들어오는 방향 추정치
+    const TRACK_STOP_MAP = { 'main-gate': 'gate_in', foreign: 'foreign_in', lifesci: 'life_in', square: 'square_in' };
+    const tracked = {};
+    if (!isLateNightOffTime()) {
+      for (const [key, routes] of Object.entries(apiRes.estimates || {})) {
+        if (TRACK_STOP_MAP[key]) tracked[TRACK_STOP_MAP[key]] = routes;
+      }
+    }
+
     state.busRawData = newRaw;
+    state.tracked = tracked;
     state.updatedAt = Date.now();
     renderBusView();
   } catch (err) {
@@ -254,8 +265,18 @@ function getProcessedStopArrivals(direction) {
       const candidates = [];
 
       const directData = isLateNightOffTime() ? null : raw[st.id]?.[rt.name];
+      const trackedMins = isIn ? state.tracked?.[st.id]?.[rt.name] : null;
+
       if (directData && directData.t1 != null) {
-        candidates.push({ t1: directData.t1, t2: directData.t2, isEstimated: false, isTimetable: false });
+        // 이 정류장 도착정보가 비어 있는 '다음 버스'는 위치 추적값으로 채움
+        let t2 = directData.t2;
+        if (t2 == null && trackedMins) t2 = trackedMins.find(m => m >= directData.t1 + 3) ?? null;
+        candidates.push({ t1: directData.t1, t2, isEstimated: false, isTimetable: false });
+      }
+
+      // 도착정보에 아직 안 잡히는 먼 버스(고속도로 위 등)는 위치 추적으로 계산한 값 사용
+      if (trackedMins && trackedMins.length) {
+        candidates.push({ t1: trackedMins[0], t2: trackedMins[1] ?? null, isEstimated: false, isTimetable: false, isTracked: true });
       }
 
       if (originT1 != null) {
@@ -277,9 +298,12 @@ function getProcessedStopArrivals(direction) {
         });
       } else {
         // 이 정류장의 실시간 값이 있으면 그걸 우선 (추정·시간표 값이 더 작다고 덮어쓰지 않음)
-        const best = candidates.find(c => !c.isEstimated && !c.isTimetable) || candidates[0];
+        // 우선순위: 이 정류장 실시간 도착정보 → 위치 추적 추정 → 기점 기준 추정 → 시간표
+        const best = candidates.find(c => !c.isEstimated && !c.isTimetable && !c.isTracked)
+          || candidates.find(c => c.isTracked)
+          || candidates[0];
         result[stopIdx].arrivals.push({
-          route: rt.name, type: rt.type, desc: routeDesc, t1: best.t1, t2: best.t2, isEstimated: best.isEstimated, isTimetable: best.isTimetable
+          route: rt.name, type: rt.type, desc: routeDesc, t1: best.t1, t2: best.t2, isEstimated: best.isEstimated, isTimetable: best.isTimetable, isTracked: Boolean(best.isTracked)
         });
       }
     });
@@ -354,6 +378,7 @@ function renderBusView() {
               <td class="dest">
                 ${esc(a.desc)}
                 ${a.isEstimated ? '<br><span class="badge-est">[추정]</span>' : ''}
+                ${a.isTracked ? '<br><span class="badge-est">[위치 기반 추정]</span>' : ''}
                 ${a.isTimetable ? '<br><span class="badge-schedule">[시간표]</span>' : ''}
               </td>
               <td class="t1 ${a.t1 == null ? 'ended' : a.t1 <= 1 ? 'soon' : ''}">
