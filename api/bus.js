@@ -3,7 +3,8 @@
 import { readEstimates } from '../lib/tracker.js';
 
 const STOPS = {
-  'main-gate':   { ko: '경희대정문',           en: 'Main Gate',        dir: 'in',  id: '228000707' },
+  // 정문은 노선마다 쓰는 정류장 ID가 다름 (M5107 등 정문이 종점인 노선은 228000723) → 둘 다 조회해서 합침
+  'main-gate':   { ko: '경희대정문',           en: 'Main Gate',        dir: 'in',  id: '228000707', extraIds: ['228000723'] },
   'foreign':     { ko: '외국어대학',           en: 'Foreign Lang',     dir: 'in',  id: '228000701' },
   'lifesci':     { ko: '생명과학대',           en: 'Life Sciences',    dir: 'in',  id: '228000702' },
   'square':      { ko: '사색의광장',           en: 'Square of Thought',dir: 'out', id: '228000703' },
@@ -12,6 +13,14 @@ const STOPS = {
 };
 
 const ROUTES = new Set(['M5107', '9', '5100', '1112', '7000', '1560']);
+// 1560A·1560B처럼 알파벳이 붙은 노선은 같은 번호로 취급
+const displayRoute = (name) => {
+  const n = String(name);
+  if (ROUTES.has(n)) return n;
+  const base = n.replace(/[A-Z]$/, '');
+  return base !== n && ROUTES.has(base) ? base : null;
+};
+
 const API_URL = 'https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalListv2';
 
 const num = (v) => (v === '' || v == null ? null : Number(v));
@@ -37,22 +46,47 @@ function isDepotReturnVehicle(b) {
   return false;
 }
 
-async function fetchStop(key) {
-  const s = STOPS[key];
+async function fetchStationList(stationId) {
   const apiKey = process.env.BUS_API_KEY;
-  const url = `${API_URL}?serviceKey=${apiKey}&stationId=${s.id}&format=json`;
+  const url = `${API_URL}?serviceKey=${apiKey}&stationId=${stationId}&format=json`;
 
   // 💡 [속도 개선 1] 타임아웃을 4000ms -> 1500ms로 단축 (지연 정류장 빠른 포기)
   const res = await fetch(url, { signal: AbortSignal.timeout(1500) });
   if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-  
+
   const json = await res.json();
   let list = json?.response?.msgBody?.busArrivalList ?? [];
   if (!Array.isArray(list)) list = [list];
+  return list;
+}
 
-  const filteredList = isLateNightOffTime() 
-    ? [] 
-    : list.filter((b) => ROUTES.has(String(b.routeName)) && !isDepotReturnVehicle(b));
+// 같은 번호(1560A·1560B, 정문 두 정류장 등)로 여러 건이 오면 가까운 순으로 2대만 남김
+function mergeByRoute(list) {
+  const groups = new Map();
+  for (const b of list) {
+    const route = displayRoute(b.routeName);
+    if (!route) continue;
+    const g = groups.get(route) || { b, times: [] };
+    if (num(b.predictTime1) != null && (num(g.b.predictTime1) == null || num(b.predictTime1) < num(g.b.predictTime1))) g.b = b;
+    for (const t of [num(b.predictTime1), num(b.predictTime2)]) if (t != null) g.times.push(t);
+    groups.set(route, g);
+  }
+  return [...groups.entries()].map(([route, { b, times }]) => {
+    times.sort((x, y) => x - y);
+    return { ...b, routeName: route, predictTime1: times[0] ?? null, predictTime2: times[1] ?? null };
+  });
+}
+
+async function fetchStop(key) {
+  const s = STOPS[key];
+  const ids = [s.id, ...(s.extraIds || [])];
+  const lists = await Promise.allSettled(ids.map(fetchStationList));
+  if (lists.every((r) => r.status === 'rejected')) throw lists[0].reason;
+  const list = lists.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+
+  const filteredList = isLateNightOffTime()
+    ? []
+    : mergeByRoute(list.filter((b) => displayRoute(b.routeName) && !isDepotReturnVehicle(b)));
 
   return {
     id: key,
