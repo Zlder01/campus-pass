@@ -265,7 +265,11 @@ function getProcessedStopArrivals(direction) {
       const candidates = [];
 
       const directData = isLateNightOffTime() ? null : raw[st.id]?.[rt.name];
-      const trackedMins = isIn ? state.tracked?.[st.id]?.[rt.name] : null;
+      // M5107·1560처럼 정문이 종점인 노선은 학교 안 정류장 추정치가 없으므로 '정문 도착 + 진입 시간'으로 계산
+      const gateTracked = isIn ? state.tracked?.gate_in?.[rt.name] : null;
+      const trackedMins = !isIn ? null
+        : state.tracked?.[st.id]?.[rt.name]
+          ?? (gateTracked ? gateTracked.map(m => Math.round(m + (offsets[st.id] || 0))) : null);
 
       if (directData && directData.t1 != null) {
         // 이 정류장 도착정보가 비어 있는 '다음 버스'는 위치 추적값으로 채움
