@@ -1,5 +1,7 @@
 // api/bus.js
 
+import { readEstimates } from '../lib/tracker.js';
+
 const STOPS = {
   'main-gate':   { ko: '경희대정문',           en: 'Main Gate',        dir: 'in',  id: '228000707' },
   'foreign':     { ko: '외국어대학',           en: 'Foreign Lang',     dir: 'in',  id: '228000701' },
@@ -85,7 +87,11 @@ export default async function handler(req, res) {
   const fetchedAt = Date.now();
   const keys = Object.keys(STOPS);
 
-  const results = await Promise.allSettled(keys.map(fetchStop));
+  // 위치 추적 기반 추정치는 Redis에서 읽기만 함 (GBIS 호출 없음). 실패해도 기존 응답은 그대로.
+  const [results, estimates] = await Promise.all([
+    Promise.allSettled(keys.map(fetchStop)),
+    readEstimates().catch((err) => { console.warn('추정치 읽기 실패:', err.message); return null; }),
+  ]);
 
   const stops = results.map((r, i) => {
     if (r.status === 'fulfilled') return r.value;
@@ -99,5 +105,5 @@ export default async function handler(req, res) {
     };
   });
 
-  res.status(200).json({ fetchedAt, stops });
+  res.status(200).json({ fetchedAt, stops, estimates: estimates || {} });
 }
