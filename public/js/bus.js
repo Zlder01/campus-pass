@@ -255,7 +255,8 @@ function getProcessedStopArrivals(direction) {
     let originT2 = originData?.t2;
     let originIsTimetable = false;
 
-    if (originT1 == null) {
+    // 나가는 방향은 정류장마다 새 시간표(Schedule.nextAt)로 따로 계산하므로 여기서는 들어오는 방향만 기존 방식 사용
+    if (originT1 == null && isIn) {
       const tt = getTimetableDeparture(rt);
       if (tt) {
         originT1 = tt.t1;
@@ -299,6 +300,13 @@ function getProcessedStopArrivals(direction) {
         });
       }
 
+      // 나가는 방향 시간표: 정문 건너편 기준 시간표에서 이 정류장의 시간차(학교 안은 앞당김)를 적용
+      // 실시간·위치추적·기점 기반 값이 모두 없을 때만 쓰인다 (아래 우선순위에서 시간표는 맨 뒤)
+      if (!isIn && window.Schedule) {
+        const sc = window.Schedule.nextAt(rt.name, (offsets[st.id] || 0) - offsets.gate_out);
+        if (sc) candidates.push({ t1: sc.t1, t2: sc.t2, clock: sc.clock, schedLabel: sc.label, isEstimated: false, isTimetable: true });
+      }
+
       if (candidates.length === 0) {
         result[stopIdx].arrivals.push({
           route: rt.name, type: rt.type, desc: routeDesc, t1: null, t2: null, isEstimated: false, isTimetable: false
@@ -308,9 +316,11 @@ function getProcessedStopArrivals(direction) {
         // 우선순위: 이 정류장 실시간 도착정보 → 위치 추적 추정 → 기점 기준 추정 → 시간표
         const best = candidates.find(c => !c.isEstimated && !c.isTimetable && !c.isTracked)
           || candidates.find(c => c.isTracked)
+          || candidates.find(c => c.isEstimated)
           || candidates[0];
         result[stopIdx].arrivals.push({
-          route: rt.name, type: rt.type, desc: routeDesc, t1: best.t1, t2: best.t2, isEstimated: best.isEstimated, isTimetable: best.isTimetable, isTracked: Boolean(best.isTracked)
+          route: rt.name, type: rt.type, desc: routeDesc, t1: best.t1, t2: best.t2, isEstimated: best.isEstimated, isTimetable: best.isTimetable, isTracked: Boolean(best.isTracked),
+          clock: best.clock || null, schedLabel: best.schedLabel || null
         });
       }
     });
@@ -386,10 +396,10 @@ function renderBusView() {
                 ${esc(a.desc)}
                 ${a.isEstimated ? '<br><span class="badge-est">[추정]</span>' : ''}
                 ${a.isTracked ? '<br><span class="badge-est">[위치 기반 추정]</span>' : ''}
-                ${a.isTimetable ? '<br><span class="badge-schedule">[시간표]</span>' : ''}
+                ${a.isTimetable ? `<br><span class="badge-schedule">[${a.schedLabel || '시간표'}]</span>` : ''}
               </td>
               <td class="t1 ${a.t1 == null ? 'ended' : a.t1 <= 1 ? 'soon' : ''}">
-                ${a.t1 == null ? '운행종료' : mins(a.t1)}
+                ${a.t1 == null ? '운행종료' : a.clock ? `${a.clock}<small> 출발</small>` : mins(a.t1)}
                 ${a.t2 != null ? `<span class="t2">다음 ${a.t2}분</span>` : ''}
               </td>
             </tr>`).join('')}
@@ -428,5 +438,10 @@ setInterval(() => {
 }, 1000);
 
 setInterval(fetchRealApiData, 30000);
+
+if (window.Schedule) {
+  window.Schedule.load().then(renderBusView);
+  setInterval(() => window.Schedule.load().then(renderBusView), 30 * 60 * 1000);
+}
 
 fetchRealApiData();
