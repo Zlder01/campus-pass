@@ -1,0 +1,75 @@
+/* public/css/campusmap.css — 국제캠퍼스 지도 */
+
+/* 검색 */
+.cm-search { position: relative; background: var(--crimson); padding: 4px 16px 10px; flex: none; z-index: 30; }
+.cm-search-box { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; background: #fff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.cm-search-box svg { width: 18px; height: 18px; color: var(--ink-2); flex: none; }
+.cm-search-box input { flex: 1; min-width: 0; border: 0; outline: none; font-size: 15px; background: transparent; }
+.cm-search-box input::-webkit-search-cancel-button { display: none; }
+.cm-clear { border: 0; background: #e6e8ec; width: 22px; height: 22px; border-radius: 50%; font-size: 15px; line-height: 1; color: var(--ink-2); padding: 0; }
+.cm-status { min-height: 16px; margin: 6px 2px 0; font-size: 12.5px; font-weight: 600; color: #fff; }
+.cm-status.error { color: #ffd6de; }
+
+.cm-suggest { position: absolute; left: 16px; right: 16px; top: 50px; margin: 0; padding: 4px; list-style: none; background: #fff; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-height: 260px; overflow-y: auto; }
+.cm-suggest li { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.cm-suggest li.active, .cm-suggest li:hover { background: var(--crimson-tint); }
+.cm-suggest .sub { margin-left: auto; font-size: 11.5px; color: var(--ink-2); }
+
+/* 스크롤 영역 */
+.cm-scroll { flex: 1; overflow-y: auto; padding: 14px 14px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+/* 지도 카드 */
+.cm-map-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; flex: none; }
+.cm-viewport { position: relative; overflow: auto; height: 250px; background: #e9efe4; -webkit-overflow-scrolling: touch; cursor: grab; scrollbar-width: thin; }
+.cm-viewport.dragging { cursor: grabbing; }
+.cm-viewport.fit { display: flex; align-items: center; }   /* 전체 보기일 때 세로 가운데 */
+.cm-inner { position: relative; width: 100%; flex: none; user-select: none; -webkit-user-select: none; }
+.cm-inner > img:first-child { display: block; width: 100%; height: auto; pointer-events: none; }
+
+/* 번호 마커 (공식 사이트 스타일) */
+.cm-marker-layer { position: absolute; inset: 0; }
+.cm-marker-layer.hidden .cm-mk { display: none; }
+.cm-mk { position: absolute; transform: translate(-50%, -100%); min-width: 18px; height: 16px; padding: 0 3px; border: 0; border-top: 2px solid var(--crimson); border-radius: 2px; background: #fff; color: #814646; font-size: 10px; font-weight: 700; line-height: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.cm-mk::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -3px; border: 3px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.cm-mk.on { background: var(--crimson); color: #fff; z-index: 5; }
+.cm-mk.on::after { border-top-color: var(--crimson); }
+
+/* 비컨 핀: pin.png의 뾰족한 끝이 이미지 높이 91.6% 지점 */
+.cm-beacon { position: absolute; width: 38px; height: auto; transform: translate(-50%, -91.6%); display: none; pointer-events: none; z-index: 10; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
+.cm-beacon.active { display: block; animation: cmDrop .45s cubic-bezier(.3,1.4,.5,1); }
+@keyframes cmDrop { from { transform: translate(-50%, -160%); opacity: 0; } to { transform: translate(-50%, -91.6%); opacity: 1; } }
+
+/* 지도 밖 장소 안내 (아래쪽 가장자리) */
+.cm-edge-hint { position: absolute; bottom: 4px; transform: translateX(-50%); padding: 4px 8px; border-radius: 999px; background: var(--crimson); color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; z-index: 10; animation: cmBlink 1.2s infinite; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+@keyframes cmBlink { 50% { opacity: .55; } }
+
+.cm-map-tools { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-top: 1px solid var(--line); }
+.cm-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.cm-toggle input { accent-color: var(--crimson); }
+.cm-zoom { display: flex; gap: 4px; }
+.cm-zoom button { min-width: 34px; height: 30px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font-size: 13px; font-weight: 700; }
+.cm-zoom button:active { background: var(--crimson-tint); }
+
+/* 정보 카드 */
+.cm-info { background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--crimson); border-radius: var(--radius); padding: 12px 14px; flex: none; }
+.cm-info-head { display: flex; align-items: center; gap: 10px; }
+.cm-info-head h2 { font-size: 16px; font-weight: 800; line-height: 1.3; }
+.cm-no { flex: none; min-width: 28px; height: 26px; padding: 0 6px; border-radius: 4px; background: var(--crimson); color: #fff; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.cm-info-note { margin: 8px 0 0; font-size: 12.5px; color: var(--crimson-deep); background: var(--crimson-tint); padding: 6px 8px; border-radius: 6px; }
+.cm-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.cm-actions a { text-decoration: none; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; }
+.cm-actions .primary { background: var(--crimson); color: #fff; }
+.cm-actions .ghost { border: 1px solid var(--line); color: var(--ink); background: #fff; }
+
+/* 전체 목록 */
+.cm-list-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; flex: none; }
+.cm-list-title { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
+.cm-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.cm-list button { width: 100%; display: flex; align-items: center; gap: 6px; padding: 7px 6px; border: 0; border-radius: 7px; background: transparent; text-align: left; font-size: 12.5px; line-height: 1.25; }
+.cm-list button:hover { background: #f3f4f6; }
+.cm-list button.on { background: var(--crimson-tint); color: var(--crimson-deep); font-weight: 700; }
+.cm-list .n { flex: none; width: 22px; height: 20px; border: 1px solid #d8cccc; border-top: 1px solid #b93737; font-size: 11px; color: #814646; display: inline-flex; align-items: center; justify-content: center; }
+.cm-list button.on .n { background: #b93737; border-color: #b93737; color: #fff; }
+
+.cm-source { margin: 0; font-size: 11px; color: var(--ink-2); text-align: center; }
+.cm-source a { color: inherit; }
