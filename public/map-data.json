@@ -3,6 +3,7 @@
     "buildingId": "art_design",
     "buildingName": "예술디자인대학관",
     "aliases": ["예술디자인대학관", "예디대", "예디관"],
+    "abbreviations": ["예"],
     "floors": [
       { "floor": "B1F", "mapImage": "/maps/art_design_b1f.png" },
       { "floor": "1F", "mapImage": "/maps/art_design_1f.png" },
@@ -31,6 +32,7 @@
     "buildingId": "ceramic",
     "buildingName": "도예관",
     "aliases": ["도예관"],
+    "abbreviations": ["도"],
     "floors": [
       { "floor": "B1", "mapImage": "/maps/ceramic_b1.png" },
       { "floor": "1F", "mapImage": "/maps/ceramic_1f.png" },
@@ -41,6 +43,7 @@
     "buildingId": "eecs",
     "buildingName": "전자정보대학",
     "aliases": ["전자정보대학", "전디대", "전정보"],
+    "abbreviations": ["전", "전정대"],
     "floors": [
       { "floor": "B1F", "mapImage": "/maps/eecs_b1f.png" },
       { "floor": "1F", "mapImage": "/maps/eecs_1f.png" },
@@ -66,6 +69,7 @@
     "buildingId": "eng_main",
     "buildingName": "공학관",
     "aliases": ["공학관", "공대", "공학"],
+    "abbreviations": ["공"],
     "floors": [
       { "floor": "B2", "mapImage": "/maps/eng_main_b2.png" },
       { "floor": "B1", "mapImage": "/maps/eng_main_b1.png" },
@@ -80,6 +84,7 @@
     "buildingId": "exp_research",
     "buildingName": "실험연구동",
     "aliases": ["실험연구동", "실연구동"],
+    "abbreviations": ["실"],
     "floors": [
       { "floor": "1F", "mapImage": "/maps/exp_research_1f.png" },
       { "floor": "2F", "mapImage": "/maps/exp_research_2f.png" }
@@ -89,6 +94,7 @@
     "buildingId": "foreign_lang",
     "buildingName": "외국어대학관",
     "aliases": ["외국어대학관", "외대", "외대관"],
+    "abbreviations": ["외"],
     "floors": [
       { "floor": "1F", "mapImage": "/maps/foreign_lang_1f.png" },
       { "floor": "2F", "mapImage": "/maps/foreign_lang_2f.png" },
@@ -101,6 +107,7 @@
     "buildingId": "global",
     "buildingName": "글로벌관",
     "aliases": ["글로벌관", "글관"],
+    "abbreviations": ["글"],
     "floors": [
       { "floor": "1F", "mapImage": "/maps/global_1f.png" },
       { "floor": "2F", "mapImage": "/maps/global_2f.png" },
@@ -123,6 +130,7 @@
     "buildingId": "int_biz",
     "buildingName": "국제경영대학관",
     "aliases": ["국제경영대학관", "국경대", "국경관"],
+    "abbreviations": ["국경"],
     "floors": [
       { "floor": "B1", "mapImage": "/maps/int_biz_b1.png" },
       { "floor": "1F", "mapImage": "/maps/int_biz_1f.png" },
@@ -134,6 +142,7 @@
     "buildingId": "int_hall",
     "buildingName": "국제학관",
     "aliases": ["국제학관", "국학관"],
+    "abbreviations": ["국"],
     "floors": [
       { "floor": "B1", "mapImage": "/maps/int_hall_b1.png" },
       { "floor": "1F", "mapImage": "/maps/int_hall_1f.png" },
@@ -146,6 +155,7 @@
     "buildingId": "life_sci",
     "buildingName": "생명과학대학관",
     "aliases": ["생명과학대학관", "생대"],
+    "abbreviations": ["생", "생대"],
     "floors": [
       { "floor": "B1F", "mapImage": "/maps/life_sci_b1f.png" },
       { "floor": "1F", "mapImage": "/maps/life_sci_1f.png" },
@@ -159,6 +169,7 @@
     "buildingId": "multimedia",
     "buildingName": "멀티미디어관",
     "aliases": ["멀티미디어관", "멀관"],
+    "abbreviations": ["멀"],
     "floors": [
       { "floor": "B2", "mapImage": "/maps/multimedia_b2.jpg" },
       { "floor": "B1", "mapImage": "/maps/multimedia_b1.jpg" },
@@ -203,6 +214,7 @@
     "buildingId": "pe_college",
     "buildingName": "체육대학관",
     "aliases": ["체육대학관", "체대관"],
+    "abbreviations": ["체", "체대"],
     "floors": [
       { "floor": "B1F", "mapImage": "/maps/pe_college_b1f.png" },
       { "floor": "1F", "mapImage": "/maps/pe_college_1f.png" },
@@ -214,7 +226,7 @@
   {
     "buildingId": "seonseung",
     "buildingName": "선승관",
-    "aliases": ["선승관", "체육관"],
+    "aliases": ["선승관"],
     "floors": [
       { "floor": "B1F", "mapImage": "/maps/seonseung_b1f.png" },
       { "floor": "1F", "mapImage": "/maps/seonseung_1f.png" },
