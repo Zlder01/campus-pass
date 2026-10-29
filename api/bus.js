@@ -14,14 +14,21 @@ const API_URL = 'https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArri
 
 const num = (v) => (v === '' || v == null ? null : Number(v));
 
+// Vercel 서버는 UTC 기준이라 getHours()를 그대로 쓰면 한국시간 10~14시가 '심야'로 잡힘 → KST로 변환
+function kstHour() {
+  return (new Date().getUTCHours() + 9) % 24;
+}
+
 function isLateNightOffTime() {
-  const currentHour = new Date().getHours();
-  return currentHour >= 1 && currentHour < 5;
+  const h = kstHour();
+  return h >= 1 && h < 5;
 }
 
 function isDepotReturnVehicle(b) {
   if (!b) return true;
-  if (b.flag && b.flag !== 'RUN' && b.flag !== 'NORMAL' && b.flag !== 'OPERATING') return true;
+  // 경기 GBIS flag: RUN·PASS = 운행중, STOP = 운행종료, WAIT = 회차지대기
+  // (예전 코드는 PASS까지 걸러서 실제 운행 중인 버스가 거의 다 빠졌음)
+  if (b.flag === 'STOP') return true;
   if (b.plateNo1 === null || b.plateNo1 === '' || b.plateNo1 === undefined) return true;
   const loc = num(b.locationNo1);
   if (loc !== null && (loc <= 0 || loc > 90)) return true;
