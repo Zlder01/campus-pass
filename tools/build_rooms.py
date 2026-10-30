@@ -2,6 +2,8 @@
 import json, re, sys
 import pandas as pd
 
+if len(sys.argv) != 3:
+    sys.exit('사용법: python tools/build_rooms.py <엑셀 파일> <map-data.json 경로>')
 XLSX, JSON_PATH = sys.argv[1], sys.argv[2]
 
 # 엑셀 '건물' → map-data buildingId  (층 조건이 있으면 해당 층만)
@@ -32,18 +34,32 @@ def sort_key(label):
     order = {'B': 0, '': 1}.get(pre, 2)
     return (order, pre, int(num), rest)
 
-df = pd.read_excel(XLSX, engine='calamine', dtype=str)
+try:
+    df = pd.read_excel(XLSX, engine='calamine', dtype=str)
+except ImportError:
+    sys.exit('python-calamine 이 필요해요: pip install python-calamine\n'
+             '(이 엑셀 파일은 openpyxl 로는 스타일 오류가 나서 열리지 않음)')
+missing = {'건물', '층', '호실', '시설명'} - set(df.columns)
+if missing:
+    sys.exit(f'엑셀 첫 시트에 열이 없어요: {missing}')
 df = df.fillna('')
 df['호실'] = df['호실'].str.strip()
 df['시설명'] = df['시설명'].str.strip()
 # 번호 미확인 / 번호 없음 제외
 df = df[~df['호실'].str.contains('번호', regex=False) & (df['호실'] != '')]
 
-data = json.load(open(JSON_PATH, encoding='utf-8'))
+with open(JSON_PATH, encoding='utf-8') as fp:
+    data = json.load(fp)
 by_id = {b['buildingId']: b for b in data}
+
+# 기존 rooms 에 손으로 넣은 값(핀 좌표 x, y 등)은 다시 돌려도 보존
+old_extra = {}
 for b in data:
     for f in b['floors']:
-        f.pop('rooms', None)
+        for r in f.pop('rooms', None) or []:
+            extra = {k: v for k, v in r.items() if k not in ('number', 'name')}
+            if extra:
+                old_extra[(b['buildingId'], norm_floor(f['floor']), r['number'])] = extra
 
 skipped, used = [], 0
 for _, row in df.iterrows():
@@ -60,7 +76,9 @@ for _, row in df.iterrows():
     rooms = floor.setdefault('rooms', [])
     if any(r['number'] == row['호실'] for r in rooms):
         skipped.append((row['건물'], row['층'], row['호실'], '중복')); continue
-    rooms.append({'number': row['호실'], 'name': row['시설명']})
+    room = {'number': row['호실'], 'name': row['시설명']}
+    room.update(old_extra.pop((bid, fk, row['호실']), {}))
+    rooms.append(room)
     used += 1
 
 for b in data:
@@ -68,6 +86,9 @@ for b in data:
         if 'rooms' in f:
             f['rooms'].sort(key=lambda r: sort_key(r['number']))
 
-json.dump(data, open(JSON_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+with open(JSON_PATH, 'w', encoding='utf-8') as fp:
+    json.dump(data, fp, ensure_ascii=False, indent=2)
 print('반영:', used)
+for key in old_extra:
+    print('주의: 엑셀에서 사라져 좌표 등을 옮기지 못한 호실:', key)
 for s in skipped: print('제외:', s)
