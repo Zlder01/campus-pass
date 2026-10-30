@@ -230,9 +230,33 @@ function initBuildingSelect() {
   selectBuilding(mapData[0].buildingId);
 
   buildingSelect.addEventListener('change', (e) => {
-    clearSearchResult(); // 선택 직접 변경 시 핀 · 하이라이트 초기화
+    const buildingId = e.target.value;
+    const building = mapData.find(b => b.buildingId === buildingId);
+    const hitsHere = activeHits.filter(h => h.buildingId === buildingId);
+
+    // 검색 결과(🟡)가 있는 건물을 고르면: 결과는 유지하고 그 건물의 첫 결과 층으로 이동
+    if (building && hitsHere.length) {
+      const order = f => building.floors.findIndex(x => x.floor === f);
+      const first = [...hitsHere].sort((a, b) => order(a.floor) - order(b.floor))[0];
+      activeTargetRoom = { ...first.room, floor: first.floor, buildingId };
+      selectBuilding(buildingId, first.floor);
+      const others = hitsHere.length - 1;
+      const label = `${building.buildingName} ${floorLabel(first.floor)} · ${first.room.number} ${first.room.name}`;
+      setSearchStatus(others > 0 ? `${label} 외 ${others}곳` : label);
+      return;
+    }
+
+    // 검색 중인데 결과가 없는 건물을 고르면: 🟡 표시는 유지하고 안내만
+    if (building && activeHits.length) {
+      activeTargetRoom = null;
+      selectBuilding(buildingId);
+      setSearchStatus(`${building.buildingName}에는 검색 결과가 없어요 (🟡 표시 건물 확인)`, true);
+      return;
+    }
+
+    clearSearchResult(); // 검색 중이 아니면 핀 · 하이라이트 초기화
     setSearchStatus('');
-    selectBuilding(e.target.value);
+    selectBuilding(buildingId);
   });
 }
 
@@ -277,9 +301,28 @@ function findFloor(building, floorKey) {
 }
 
 function renderAll() {
+  renderBuildingOptions();
   renderFloorButtons();
   updateFloorPlanImage();
   renderRoomTable();
+}
+
+// 건물 드롭다운: 검색 결과가 있는 건물 앞에 🟡, 뒤에 개수 표시
+//   (<select> 목록은 휴대폰에서 OS 화면으로 떠서 CSS 점을 못 그리므로 글자로 표시)
+function renderBuildingOptions() {
+  const buildingSelect = document.getElementById('buildingSelect');
+  if (!buildingSelect) return;
+
+  const counts = {};
+  for (const h of activeHits) counts[h.buildingId] = (counts[h.buildingId] || 0) + 1;
+
+  for (const opt of buildingSelect.options) {
+    const b = mapData.find(x => x.buildingId === opt.value);
+    if (!b) continue;
+    const n = counts[b.buildingId];
+    const text = n ? `🟡 ${b.buildingName} (${n}곳)` : b.buildingName;
+    if (opt.textContent !== text) opt.textContent = text;
+  }
 }
 
 // 4. 층 버튼 렌더링 (검색 결과가 있는 층에는 점 표시)
