@@ -3,14 +3,21 @@
 let mapData = [];
 let currentBuilding = null;
 let currentFloorObj = null;
-let activeTargetRoom = null; // 검색으로 찾은 대상 호실 { number, floor, x?, y? }
+let activeTargetRoom = null; // 핀 표시용 대표 호실 { number, floor, buildingId, x?, y? }
+let activeHits = [];         // 표에서 하이라이트할 호실들 [{ buildingId, floor, room }]
 let prefixIndex = [];        // [{ prefix, building }] — 긴 접두어 우선 정렬
+let roomIndex = [];          // [{ building, floor, room, keys:[...], nameKey }] — 전체 호실 검색용
 
 // ───────────────────────── 검색어 해석 유틸 ─────────────────────────
 
 // 비교용 정규화: 공백 제거 + 대문자 (한글은 영향 없음, b → B)
 function normalize(str) {
   return String(str || '').replace(/\s+/g, '').toUpperCase();
+}
+
+// 호실 번호 비교용: 정규화 + 끝의 "호"/"호실" 제거  ("D402호" → "D402")
+function normalizeRoom(str) {
+  return normalize(str).replace(/호실?$/, '');
 }
 
 // 층 표기 정규화: "B1F" / "B1" → "B1", "1F" → "1"
@@ -20,7 +27,47 @@ function normalizeFloor(floor) {
 
 // 사람이 읽는 층 이름: "B1" → "B1층", "3" → "3층"
 function floorLabel(floorKey) {
-  return `${floorKey}층`;
+  return `${normalizeFloor(floorKey)}층`;
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// 표의 호실 칸 하나가 여러 호실을 묶고 있을 수 있어서 검색용 키로 펼친다.
+//   "505, 506"   → ["505", "506"]
+//   "B101~B104"  → ["B101", "B102", "B103", "B104"]
+//   "101-C,D"    → ["101-C", "101-D"]
+function expandRoomKeys(label) {
+  const keys = [];
+  let lastBase = null; // "101-C" 다음에 오는 "D" 처리용 → "101-"
+  for (const raw of String(label).split(',')) {
+    const part = normalizeRoom(raw);
+    if (!part) continue;
+
+    const range = part.match(/^([A-Z]*)(\d+)~([A-Z]*)(\d+)$/);
+    if (range) {
+      const [, pre, from, , to] = range;
+      const start = parseInt(from, 10);
+      const end = parseInt(to, 10);
+      if (end >= start && end - start <= 100) {
+        for (let n = start; n <= end; n++) keys.push(pre + String(n).padStart(from.length, '0'));
+        continue;
+      }
+    }
+
+    if (!/\d/.test(part) && lastBase) {
+      keys.push(lastBase + part);
+      continue;
+    }
+
+    keys.push(part);
+    const dash = part.match(/^(.*-)[A-Z0-9]+$/);
+    lastBase = dash ? dash[1] : null;
+  }
+  return keys;
 }
 
 // 약칭 · 별칭 · 정식 건물명을 모두 접두어 목록으로 만든다.
@@ -40,50 +87,108 @@ function buildPrefixIndex() {
   prefixIndex.sort((a, b) => b.prefix.length - a.prefix.length);
 }
 
-// 호실 번호 → 층 키
-//   101 → "1", 365 → "3", 1203 → "12"
-//   B101 → "B1", B203 → "B2", B01 → "B1"
-//   한 자리(입력 중) "5" → "5"
+// map-data.json 의 floors[].rooms 를 검색용 목록으로 펼친다.
+function buildRoomIndex() {
+  roomIndex = [];
+  for (const b of mapData) {
+    for (const f of b.floors || []) {
+      for (const room of f.rooms || []) {
+        roomIndex.push({
+          building: b,
+          floor: f,
+          room,
+          keys: expandRoomKeys(room.number),
+          nameKey: normalize(room.name),
+        });
+      }
+    }
+  }
+}
+
+// 호실 번호 → 층 키 (표에 없는 호실을 검색했을 때만 쓰는 추정값)
+//   101 → "1", 365 → "3", 1203 → "12", B101 → "B1", B01 → "B1"
 function floorFromRoom(isBasement, digits) {
   let level = digits.length <= 3 ? digits[0] : digits.slice(0, -2);
-  level = String(parseInt(level, 10) || 1); // "0"(B01 같은 표기) → 1
+  level = String(parseInt(level, 10) || 1);
   return (isBasement ? 'B' : '') + level;
 }
 
-// "공101", "공 B102호", "국경103", "생119(시청각실)", "공102-1호", "501" 등을 해석
-// 반환: { building | null, floorKey | null, roomNumber | null } 또는 null(해석 불가)
-function parseQuery(rawQuery) {
+// 검색어 앞부분에서 건물 약칭/이름을 떼어낸다. { building | null, rest }
+function splitBuildingPrefix(q) {
+  for (const { prefix, building } of prefixIndex) {
+    if (q.startsWith(prefix)) return { building, rest: q.slice(prefix.length) };
+  }
+  return { building: null, rest: q };
+}
+
+// 현재 보고 있는 건물 → 현재 층 순으로 앞에 오도록 정렬
+function sortByCurrentView(hits) {
+  const score = h =>
+    (currentBuilding && h.building === currentBuilding ? 0 : 2) +
+    (currentFloorObj && h.floor === currentFloorObj ? 0 : 1);
+  return [...hits].sort((a, b) => score(a) - score(b));
+}
+
+// 표(roomIndex)에서 찾기
+function findByRoomNumber(key, building = null) {
+  const k = normalizeRoom(key);
+  if (!k) return [];
+  return roomIndex.filter(e => (!building || e.building === building) && e.keys.includes(k));
+}
+
+function findByName(key, building = null) {
+  const k = normalize(key);
+  if (k.length < 2) return []; // 한 글자는 결과가 너무 많아서 제외
+  return roomIndex.filter(e => (!building || e.building === building) && e.nameKey.includes(k));
+}
+
+// 검색어 해석 결과
+//   { type: 'rooms', hits }                       표에서 찾음 (호실 번호 or 시설명)
+//   { type: 'building', building }                건물명만 입력
+//   { type: 'guess', building, floorKey, roomNumber }  표에 없는 번호 → 번호로 층 추정
+//   null                                          해석 불가
+function resolveQuery(rawQuery) {
   const q = normalize(rawQuery);
   if (!q) return null;
 
-  let building = null;
-  let rest = q;
-  for (const { prefix, building: b } of prefixIndex) {
-    if (q.startsWith(prefix)) {
-      building = b;
-      rest = q.slice(prefix.length);
-      break;
-    }
+  const { building, rest } = splitBuildingPrefix(q);
+
+  // 1) 호실 번호: "공D402", "공 101호"
+  if (building && rest) {
+    const hits = findByRoomNumber(rest, building);
+    if (hits.length) return { type: 'rooms', hits };
+  }
+  // 2) 호실 번호만: "D402", "501" (현재 건물 우선)
+  {
+    const hits = findByRoomNumber(q);
+    if (hits.length) return { type: 'rooms', hits };
+  }
+  // 3) 건물명만: "공", "공학관"
+  if (building && !rest) return { type: 'building', building };
+
+  // 4) 시설명 전체: "공학도서관"
+  {
+    const hits = findByName(q);
+    if (hits.length) return { type: 'rooms', hits };
+  }
+  // 5) 건물 + 시설명: "공 도서관"
+  if (building && rest) {
+    const hits = findByName(rest, building);
+    if (hits.length) return { type: 'rooms', hits };
   }
 
-  // 건물명만 입력한 경우 (예: "공", "공학관")
-  if (building && rest === '') {
-    return { building, floorKey: null, roomNumber: null };
-  }
-
-  // 남은 부분이 호실 번호인지 확인: [B]숫자[-숫자][호/호실/기타 설명]
+  // 6) 표에 없는 호실 번호 → 기존처럼 번호로 층 추정
   const m = rest.match(/^(B)?(\d+)(-\d+)?/);
-  if (!m) return null;
-
-  const isBasement = Boolean(m[1]);
-  const digits = m[2];
-  const roomNumber = `${isBasement ? 'B' : ''}${digits}${m[3] || ''}`;
-
-  return {
-    building, // null이면 현재 보고 있는 건물에서 찾음 (예: "501")
-    floorKey: floorFromRoom(isBasement, digits),
-    roomNumber,
-  };
+  if (m) {
+    const isBasement = Boolean(m[1]);
+    return {
+      type: 'guess',
+      building, // null이면 현재 건물
+      floorKey: floorFromRoom(isBasement, m[2]),
+      roomNumber: `${isBasement ? 'B' : ''}${m[2]}${m[3] || ''}`,
+    };
+  }
+  return null;
 }
 
 // ───────────────────────── 데이터 로드 & 렌더링 ─────────────────────────
@@ -97,6 +202,7 @@ async function loadMapData() {
 
     mapData = await res.json();
     buildPrefixIndex();
+    buildRoomIndex();
     initBuildingSelect();
     initSearchEvent();
   } catch (err) {
@@ -110,16 +216,21 @@ function initBuildingSelect() {
   if (!buildingSelect || !mapData.length) return;
 
   buildingSelect.innerHTML = mapData.map(b =>
-    `<option value="${b.buildingId}">${b.buildingName}</option>`
+    `<option value="${b.buildingId}">${escapeHtml(b.buildingName)}</option>`
   ).join('');
 
   selectBuilding(mapData[0].buildingId);
 
   buildingSelect.addEventListener('change', (e) => {
-    activeTargetRoom = null; // 선택 직접 변경 시 핀 초기화
+    clearSearchResult(); // 선택 직접 변경 시 핀 · 하이라이트 초기화
     setSearchStatus('');
     selectBuilding(e.target.value);
   });
+}
+
+function clearSearchResult() {
+  activeTargetRoom = null;
+  activeHits = [];
 }
 
 // 3. 건물 선택 처리 (floorKey를 주면 해당 층, 없으면 1층 → 첫 층)
@@ -135,23 +246,33 @@ function selectBuilding(buildingId, floorKey = null) {
     || (currentBuilding.floors && currentBuilding.floors[0])
     || null;
 
-  renderFloorButtons();
-  updateFloorPlanImage();
+  renderAll();
 }
 
 function findFloor(building, floorKey) {
   if (!building || !building.floors || !floorKey) return null;
-  return building.floors.find(f => normalizeFloor(f.floor) === floorKey) || null;
+  const key = normalizeFloor(floorKey);
+  return building.floors.find(f => normalizeFloor(f.floor) === key) || null;
 }
 
-// 4. 층 버튼 렌더링
+function renderAll() {
+  renderFloorButtons();
+  updateFloorPlanImage();
+  renderRoomTable();
+}
+
+// 4. 층 버튼 렌더링 (검색 결과가 있는 층에는 점 표시)
 function renderFloorButtons() {
   const floorContainer = document.getElementById('floorButtons');
   if (!floorContainer || !currentBuilding) return;
 
+  const hitFloors = new Set(
+    activeHits.filter(h => h.buildingId === currentBuilding.buildingId).map(h => h.floor)
+  );
+
   floorContainer.innerHTML = currentBuilding.floors.map(f => `
     <button
-      class="floor-btn ${currentFloorObj && currentFloorObj.floor === f.floor ? 'active' : ''}"
+      class="floor-btn ${currentFloorObj && currentFloorObj.floor === f.floor ? 'active' : ''} ${hitFloors.has(f.floor) ? 'has-hit' : ''}"
       onclick="selectFloor('${f.floor}')"
     >
       ${f.floor}
@@ -159,12 +280,11 @@ function renderFloorButtons() {
   `).join('');
 }
 
-// 5. 층 변경 처리 (층 버튼 클릭)
+// 5. 층 변경 처리 (층 버튼 클릭) — 검색 하이라이트는 유지
 function selectFloor(floorName) {
   if (!currentBuilding) return;
   currentFloorObj = currentBuilding.floors.find(f => f.floor === floorName);
-  renderFloorButtons();
-  updateFloorPlanImage();
+  renderAll();
 }
 
 // 6. 도면 및 하이라이트 핀 렌더링
@@ -201,6 +321,51 @@ function updateFloorPlanImage() {
   }
 }
 
+// 7. 현재 층의 호실 표 렌더링
+function renderRoomTable() {
+  const titleElem = document.getElementById('roomTableTitle');
+  const bodyElem = document.getElementById('roomTableBody');
+  const emptyElem = document.getElementById('roomTableEmpty');
+  const tableElem = document.getElementById('roomTable');
+  if (!bodyElem || !currentBuilding || !currentFloorObj) return;
+
+  const rooms = currentFloorObj.rooms || [];
+  if (titleElem) {
+    titleElem.textContent = `${currentBuilding.buildingName} ${floorLabel(currentFloorObj.floor)} 호실 안내`;
+  }
+
+  if (!rooms.length) {
+    bodyElem.innerHTML = '';
+    if (tableElem) tableElem.style.display = 'none';
+    if (emptyElem) emptyElem.style.display = 'block';
+    return;
+  }
+  if (tableElem) tableElem.style.display = '';
+  if (emptyElem) emptyElem.style.display = 'none';
+
+  const hitRooms = new Set(
+    activeHits
+      .filter(h => h.buildingId === currentBuilding.buildingId && h.floor === currentFloorObj.floor)
+      .map(h => h.room)
+  );
+
+  bodyElem.innerHTML = rooms.map((r, i) => `
+    <tr class="${hitRooms.has(r) ? 'hit' : ''}" data-idx="${i}">
+      <td class="room-no">${escapeHtml(r.number)}</td>
+      <td class="room-name">${escapeHtml(r.name)}</td>
+    </tr>
+  `).join('');
+
+  // 첫 번째 하이라이트 행이 보이도록 표 안에서만 스크롤 (도면은 그대로 보이게)
+  const scrollElem = document.getElementById('roomTableScroll');
+  const firstHit = bodyElem.querySelector('tr.hit');
+  if (scrollElem) {
+    scrollElem.scrollTop = firstHit
+      ? Math.max(0, firstHit.offsetTop - scrollElem.clientHeight / 2 + firstHit.offsetHeight / 2)
+      : 0;
+  }
+}
+
 // 검색 결과 안내 문구
 function setSearchStatus(text, isError = false) {
   const el = document.getElementById('searchStatus');
@@ -209,54 +374,67 @@ function setSearchStatus(text, isError = false) {
   el.classList.toggle('error', isError);
 }
 
-// 7. 검색 실행
+// 8. 검색 실행
 function runSearch(rawQuery) {
   if (!normalize(rawQuery)) {
-    activeTargetRoom = null;
+    clearSearchResult();
     setSearchStatus('');
-    updateFloorPlanImage();
+    renderAll();
     return;
   }
 
-  const parsed = parseQuery(rawQuery);
-  if (!parsed) {
-    setSearchStatus('건물 약칭 + 호실로 검색해 주세요 (예: 공101, 공B102)', true);
+  const result = resolveQuery(rawQuery);
+  if (!result) {
+    clearSearchResult();
+    setSearchStatus('호실 번호나 시설명으로 검색해 주세요 (예: 공D402, 공학도서관)', true);
+    renderAll();
     return;
   }
 
-  const building = parsed.building || currentBuilding;
-  if (!building) return;
+  // 표에서 찾은 경우: 표에 적힌 층으로 이동 + 해당 행 하이라이트
+  if (result.type === 'rooms') {
+    const hits = sortByCurrentView(result.hits);
+    const first = hits[0];
+
+    activeHits = hits.map(h => ({ buildingId: h.building.buildingId, floor: h.floor.floor, room: h.room }));
+    activeTargetRoom = { ...first.room, floor: first.floor.floor, buildingId: first.building.buildingId };
+
+    selectBuilding(first.building.buildingId, first.floor.floor);
+
+    const where = `${first.building.buildingName} ${floorLabel(first.floor.floor)}`;
+    const label = `${first.room.number} ${first.room.name}`;
+    const others = hits.length - 1;
+    setSearchStatus(others > 0 ? `${where} · ${label} 외 ${others}곳` : `${where} · ${label}`);
+    return;
+  }
 
   // 건물만 입력
-  if (!parsed.floorKey) {
-    activeTargetRoom = null;
-    selectBuilding(building.buildingId);
-    setSearchStatus(building.buildingName);
+  if (result.type === 'building') {
+    clearSearchResult();
+    selectBuilding(result.building.buildingId);
+    setSearchStatus(result.building.buildingName);
     return;
   }
 
-  const floorObj = findFloor(building, parsed.floorKey);
+  // 표에 없는 호실 번호 → 번호로 층 추정 (기존 방식)
+  const building = result.building || currentBuilding;
+  if (!building) return;
+  clearSearchResult();
+
+  const floorObj = findFloor(building, result.floorKey);
   if (!floorObj) {
-    activeTargetRoom = null;
     if (currentBuilding !== building) selectBuilding(building.buildingId);
-    setSearchStatus(`${building.buildingName}에는 ${floorLabel(parsed.floorKey)} 도면이 없어요`, true);
+    else renderAll();
+    setSearchStatus(`${building.buildingName}에는 ${floorLabel(result.floorKey)} 도면이 없어요`, true);
     return;
   }
 
-  // 나중에 floors[].rooms 에 좌표를 넣으면 핀까지 자동 표시됨
-  const roomInfo = (floorObj.rooms || []).find(r => normalize(r.number) === parsed.roomNumber) || {};
-  activeTargetRoom = {
-    ...roomInfo,
-    number: parsed.roomNumber,
-    floor: floorObj.floor,
-    buildingId: building.buildingId,
-  };
-
-  selectBuilding(building.buildingId, parsed.floorKey);
-  setSearchStatus(`${building.buildingName} ${floorLabel(parsed.floorKey)} · ${parsed.roomNumber}호`);
+  activeTargetRoom = { number: result.roomNumber, floor: floorObj.floor, buildingId: building.buildingId };
+  selectBuilding(building.buildingId, floorObj.floor);
+  setSearchStatus(`${building.buildingName} ${floorLabel(floorObj.floor)} · ${result.roomNumber}호 (표에 없는 호실)`);
 }
 
-// 8. 검색 이벤트 (입력할 때마다 실시간 + Enter)
+// 9. 검색 이벤트 (입력할 때마다 실시간 + Enter)
 function initSearchEvent() {
   const searchInput = document.getElementById('roomSearchInput');
   if (!searchInput) return;
