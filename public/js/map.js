@@ -152,27 +152,34 @@ function resolveQuery(rawQuery) {
   if (!q) return null;
 
   const { building, rest } = splitBuildingPrefix(q);
+  // "공101", "실1", "예B1" 처럼 건물 약칭 뒤에 호실 번호가 오는 형태인지
+  const restLooksLikeRoom = /^[A-Z]?\d/.test(rest);
 
   // 1) 호실 번호: "공D402", "공 101호"
   if (building && rest) {
     const hits = findByRoomNumber(rest, building);
     if (hits.length) return { type: 'rooms', hits };
   }
-  // 2) 호실 번호만: "D402", "501" (현재 건물 우선)
-  {
+  // 2) 호실 번호만: "D402", "501"
+  //    지금 보는 건물에 있으면 거기로. 없으면 "D402"처럼 문자가 붙은 번호만 다른 건물까지 찾고,
+  //    "403", "B103" 같은 흔한 번호는 다른 건물로 튀지 않고 지금 건물에서 층을 추정한다(6번).
+  if (!building) {
     const hits = findByRoomNumber(q);
-    if (hits.length) return { type: 'rooms', hits };
+    const here = hits.filter(h => h.building === currentBuilding);
+    if (here.length) return { type: 'rooms', hits: here };
+    if (hits.length && /^[A-Z]/.test(q) && !/^B\d/.test(q)) return { type: 'rooms', hits };
   }
   // 3) 건물명만: "공", "공학관"
   if (building && !rest) return { type: 'building', building };
 
   // 4) 시설명 전체: "공학도서관"
-  {
+  //    단, "실1"처럼 건물+번호 입력 중일 때는 "세미나실1" 같은 이름에 잘못 걸리지 않게 건너뜀
+  if (!(building && restLooksLikeRoom)) {
     const hits = findByName(q);
     if (hits.length) return { type: 'rooms', hits };
   }
   // 5) 건물 + 시설명: "공 도서관"
-  if (building && rest) {
+  if (building && rest && !restLooksLikeRoom) {
     const hits = findByName(rest, building);
     if (hits.length) return { type: 'rooms', hits };
   }
@@ -196,8 +203,8 @@ function resolveQuery(rawQuery) {
 // 1. map-data.json 로드
 async function loadMapData() {
   try {
-    let res = await fetch('/data/map-data.json');
-    if (!res.ok) res = await fetch('/map-data.json');
+    let res = await fetch('/map-data.json');
+    if (!res.ok) res = await fetch('/data/map-data.json');
     if (!res.ok) throw new Error('Data fetch failed');
 
     mapData = await res.json();
@@ -205,6 +212,7 @@ async function loadMapData() {
     buildRoomIndex();
     initBuildingSelect();
     initSearchEvent();
+    applyUrlParams();
   } catch (err) {
     console.error('데이터 로드 실패:', err);
   }
@@ -327,11 +335,13 @@ function renderRoomTable() {
   const bodyElem = document.getElementById('roomTableBody');
   const emptyElem = document.getElementById('roomTableEmpty');
   const tableElem = document.getElementById('roomTable');
-  if (!bodyElem || !currentBuilding || !currentFloorObj) return;
+  if (!bodyElem) return;
 
-  const rooms = currentFloorObj.rooms || [];
+  const rooms = (currentFloorObj && currentFloorObj.rooms) || [];
   if (titleElem) {
-    titleElem.textContent = `${currentBuilding.buildingName} ${floorLabel(currentFloorObj.floor)} 호실 안내`;
+    titleElem.textContent = currentBuilding && currentFloorObj
+      ? `${currentBuilding.buildingName} ${floorLabel(currentFloorObj.floor)} 호실 안내`
+      : '호실 안내';
   }
 
   if (!rooms.length) {
@@ -345,7 +355,7 @@ function renderRoomTable() {
 
   const hitRooms = new Set(
     activeHits
-      .filter(h => h.buildingId === currentBuilding.buildingId && h.floor === currentFloorObj.floor)
+      .filter(h => currentBuilding && h.buildingId === currentBuilding.buildingId && h.floor === currentFloorObj.floor)
       .map(h => h.room)
   );
 
@@ -446,6 +456,22 @@ function initSearchEvent() {
       searchInput.blur(); // 모바일 키보드 내리기
     }
   });
+}
+
+// 10. 캠퍼스 지도에서 넘어온 주소 처리
+//   /map.html?b=eng_main  → 해당 건물 열기
+//   /map.html?q=공101     → 검색창에 넣고 바로 검색
+function applyUrlParams() {
+  const params = new URLSearchParams(location.search);
+  const b = params.get('b');
+  const q = params.get('q');
+
+  if (b && mapData.some(x => x.buildingId === b)) selectBuilding(b);
+  if (q) {
+    const searchInput = document.getElementById('roomSearchInput');
+    if (searchInput) searchInput.value = q;
+    runSearch(q);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', loadMapData);
