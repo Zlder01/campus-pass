@@ -70,6 +70,26 @@
     .pin-badge { background: var(--crimson); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     .pin-dot { width: 12px; height: 12px; background: var(--crimson); border: 2px solid #fff; border-radius: 50%; margin-top: 2px; }
 
+    /* 표가 길어져도 도면 카드가 눌려 잘리지 않도록 */
+    .content > * { flex-shrink: 0; }
+
+    /* 층별 호실 안내 표 */
+    .room-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; flex: none; }
+    .room-card-title { padding: 12px 14px; font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--line); }
+    .room-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .room-table-scroll { max-height: 340px; overflow-y: auto; position: relative; }
+    .room-table th { position: sticky; top: 0; z-index: 1; background: #f6f8fa; color: var(--ink-2); font-size: 12px; font-weight: 600; text-align: left; padding: 8px 14px; border-bottom: 1px solid var(--line); }
+    .room-table td { padding: 9px 14px; border-bottom: 1px solid #eaeef2; vertical-align: top; transition: background-color 0.2s, color 0.2s; }
+    .room-table tr:last-child td { border-bottom: 0; }
+    .room-table .room-no { width: 34%; font-weight: 700; white-space: nowrap; }
+    .room-table .room-name { word-break: keep-all; }
+    .room-table tr.hit td { background: var(--crimson); color: #fff; }
+    .room-empty { padding: 20px 14px; text-align: center; font-size: 13px; color: var(--ink-2); display: none; }
+
+    /* 검색 결과가 있는 층 버튼 표시 */
+    .floor-btn { position: relative; }
+    .floor-btn.has-hit::after { content: ""; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: #e8a33d; }
+
     @keyframes bounce {
       from { transform: translate(-50%, -100%); }
       to { transform: translate(-50%, -120%); }
@@ -91,7 +111,7 @@
     <div class="search-wrap">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="text" id="roomSearchInput" placeholder="강의실 검색 (예: 공101, 공B102, 멀403)" autocomplete="off" enterkeyhint="search">
+        <input type="text" id="roomSearchInput" placeholder="호실·시설명 검색 (예: 공D402, 공학도서관)" autocomplete="off" enterkeyhint="search">
       </div>
       <p id="searchStatus" class="search-status" aria-live="polite"></p>
     </div>
@@ -114,6 +134,20 @@
           </div>
         </div>
       </div>
+
+      <!-- 층별 호실 안내 표 -->
+      <section class="room-card">
+        <h2 id="roomTableTitle" class="room-card-title">호실 안내</h2>
+        <div id="roomTableScroll" class="room-table-scroll">
+        <table id="roomTable" class="room-table">
+          <thead>
+            <tr><th>호실</th><th>시설명</th></tr>
+          </thead>
+          <tbody id="roomTableBody"></tbody>
+        </table>
+        </div>
+        <p id="roomTableEmpty" class="room-empty">이 층의 호실 정보가 아직 없어요</p>
+      </section>
     </main>
   </div>
 
