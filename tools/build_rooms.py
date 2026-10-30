@@ -37,6 +37,16 @@ BUILDING_MAP = [
 #   예) 생명과학대학_호실안내_수정본.xlsx → '생명과학대학'
 FILE_BUILDING_NAMES = ['생명과학대학']
 
+# 엑셀마다 다르게 적힌 "이름 없음" 표기를 하나로 통일
+UNNAMED_LABEL = '(명칭 미표기)'
+UNNAMED_VARIANTS = {'(표기 없음)', '(명칭 미표기)', '(가려짐)'}
+
+# 판독이 불완전한 시설명을 정리 (엑셀 원본 표기 → 표에 보일 이름)
+NAME_FIXES = {
+    '(교수연구실)': '교수연구실',                                   # 공학관 3F 330
+    '(글자 흐림, 판독 불가 – 교수 연구실로 추정)': '교수연구실',      # 체육대학관 4F 438
+}
+
 def norm_floor(f):
     return re.sub(r'F$', '', str(f).strip().upper())
 
@@ -66,6 +76,8 @@ def read_xlsx(path):
     df = df.fillna('')
     for col in ('건물', '층', '호실', '시설명'):
         df[col] = df[col].astype(str).str.strip()
+    df.loc[df['시설명'].isin(UNNAMED_VARIANTS), '시설명'] = UNNAMED_LABEL
+    df['시설명'] = df['시설명'].replace(NAME_FIXES)
     # 번호 미확인 / 번호 없음 제외
     return df[~df['호실'].str.contains('번호', regex=False) & (df['호실'] != '')]
 
