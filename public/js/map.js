@@ -255,6 +255,19 @@ function selectBuilding(buildingId, floorKey = null) {
     || null;
 
   renderAll();
+  preloadFloorImages(currentBuilding);
+}
+
+// 같은 건물의 다른 층 도면을 미리 받아둠 → 층 버튼을 누르면 바로 표시
+const preloadedImages = new Set();
+function preloadFloorImages(building) {
+  for (const f of building.floors || []) {
+    if (!f.mapImage || preloadedImages.has(f.mapImage)) continue;
+    preloadedImages.add(f.mapImage);
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = f.mapImage;
+  }
 }
 
 function findFloor(building, floorKey) {
